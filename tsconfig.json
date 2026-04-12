@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "isolatedModules": true,
+    "declaration": true,
+    "paths": {
+      "@traceflow/sdk": ["./packages/trace-sdk/src"],
+      "@traceflow/server": ["./packages/trace-server/src"],
+      "@traceflow/admin": ["./packages/trace-admin/src"]
+    }
+  },
+  "exclude": ["node_modules", "**/dist", "**/build", "**/test"]
+}
