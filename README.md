@@ -1,39 +1,47 @@
-# TraceFlow Full-Link Tracing Platform
+# TraceFlow 全链路埋点监控平台
 
-TraceFlow is a full-link tracing and monitoring system.
+TraceFlow 是一个面向前端、后端和管理端的全链路埋点与监控平台，当前仓库采用 Monorepo 结构，便于多人协作和模块化开发。
 
-## Project Structure
+## 项目结构
 
-- `packages/trace-sdk`: Client-side SDK (TypeScript)
-- `packages/trace-server`: Backend for data collection & analysis (Node.js/Express)
-- `packages/trace-admin`: Visual management/dashboard (React/Vite)
+- `packages/trace-sdk`：埋点 SDK，负责数据采集、插件扩展和沙箱隔离
+- `packages/trace-server`：后端服务，基于 NestJS，负责埋点数据接收、处理和分析
+- `packages/trace-admin`：可视化管理平台，负责数据展示、配置管理和运营分析
 
-## Development
+## 开发环境
 
-### Prerequisites
+### 依赖要求
 
 - Node.js >= 20
 - pnpm >= 8
 
-### Setup
+### 本地启动
 
 ```bash
-# Install dependencies
+# 安装依赖
 pnpm install
 
-# Run dev mode for all packages
+# 启动所有包的开发模式
 pnpm dev
 ```
 
-### Git Workflow
+### 常用命令
 
-1. Create a feature branch
-2. Commit your changes
-3. Open a Pull Request
+- `pnpm dev`：启动开发模式
+- `pnpm build`：构建所有包
+- `pnpm test`：运行所有测试
+- `pnpm lint`：执行代码检查
+- `pnpm format`：格式化代码
 
-## Technology Stack
+### Git 提交流程
 
-- **Monorepo**: pnpm workspaces
-- **Frontend**: React + Vite + Echarts
-- **Backend**: Express + TypeScript + MongoDB/MySQL (Planned)
-- **SDK**: Vanilla TypeScript
+1. 基于主分支创建功能分支
+2. 完成开发后提交代码
+3. 提交 Pull Request 进行评审
+
+## 技术栈
+
+- **工程管理**：pnpm workspaces
+- **前端管理后台**：React + Vite + Echarts + TS
+- **后端服务**：NestJS + TypeScript
+- **埋点 SDK**：TypeScript
