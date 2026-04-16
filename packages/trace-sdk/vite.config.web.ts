@@ -1,24 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
-import dts from 'vite-plugin-dts';
 
 export default defineConfig({
-  plugins: [
-    dts({
-      insertTypesEntry: true,
-      rollupTypes: true,
-      tsconfigPath: './tsconfig.dts.json',
-      outDir: 'dist',
-      afterBuild: () => {},
-    }),
-  ],
   build: {
     lib: {
-      // 默认入口（Web 完整版）
       entry: resolve(__dirname, 'entry-web.ts'),
       name: 'TraceSDK',
-      formats: ['iife', 'es', 'cjs'],
-      fileName: (format: string) => `trace-sdk.${format}.js`,
+      formats: ['iife', 'es'],
+      fileName: (format: string) => `trace-sdk.web.${format}.js`,
     },
     sourcemap: true,
     minify: 'terser',
@@ -28,11 +17,12 @@ export default defineConfig({
       },
     },
     target: 'es2015',
+    emptyOutDir: false,
   },
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      // Web 构建中将 Node.js 内置模块替换为空模块，消除外部化警告
+      // Web 构建中将 Node.js 内置模块替换为空模块
       os: resolve(__dirname, 'src/adapter/empty-module.ts'),
       crypto: resolve(__dirname, 'src/adapter/empty-module.ts'),
     },

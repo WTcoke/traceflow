@@ -1,17 +1,24 @@
 {
   "compilerOptions": {
     "target": "ES2018",
-    "module": "NodeNext",
+    "module": "ESNext",
     "lib": ["ES2018", "DOM"],
     "declaration": true,
-    "rootDir": "src",
+    "rootDir": ".",
     "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "NodeNext"
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "types": ["node"],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
   "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "test"]
+  "exclude": ["node_modules", "dist", "dist-temp", "test", "entry-*.ts"],
+  "references": [{ "path": "./tsconfig.node.json" }, { "path": "./tsconfig.test.json" }]
 }
