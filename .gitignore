@@ -18,6 +18,7 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+.codebuddy/
 
 # OS
 .DS_Store
