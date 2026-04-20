@@ -1,0 +1,59 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model TraceEvent {
+  id          BigInt   @id @default(autoincrement())
+  eventId     String   @map("event_id") @unique
+  eventType   TraceEventType
+  eventName   String?  @map("event_name")
+  timestamp   BigInt
+
+  userId      String?  @map("user_id")
+  anonymousId String   @map("anonymous_id")
+  sessionId   String   @map("session_id")
+
+  url         String?  @db.VarChar(2048)
+  title       String?  @db.VarChar(512)
+  referrer    String?  @db.VarChar(2048)
+
+  deviceInfo  Json     @map("device_info")
+  properties  Json?    @map("properties")
+
+  priority    TracePriority @default(normal)
+
+  sent        Boolean @default(false) @map("_sent")
+  retryCount  Int     @default(0) @map("_retry_count")
+  createdAt   BigInt  @map("_created_at")
+
+  @@index([timestamp])
+  @@index([userId])
+  @@index([anonymousId])
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([userId, timestamp])
+  @@index([sessionId, timestamp])
+
+  @@map("trace_events")
+}
+
+enum TraceEventType {
+  track
+  page
+  error
+  identify
+  custom
+}
+
+enum TracePriority {
+  critical
+  normal
+  low
+}
