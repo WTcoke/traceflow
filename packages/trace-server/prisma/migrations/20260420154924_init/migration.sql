@@ -1,0 +1,32 @@
+-- CreateTable
+CREATE TABLE `trace_events` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `event_id` VARCHAR(191) NOT NULL,
+    `eventType` ENUM('track', 'page', 'error', 'identify', 'custom') NOT NULL,
+    `event_name` VARCHAR(191) NULL,
+    `timestamp` BIGINT NOT NULL,
+    `user_id` VARCHAR(191) NULL,
+    `anonymous_id` VARCHAR(191) NOT NULL,
+    `session_id` VARCHAR(191) NOT NULL,
+    `url` VARCHAR(2048) NULL,
+    `title` VARCHAR(512) NULL,
+    `referrer` VARCHAR(2048) NULL,
+    `device_info` JSON NOT NULL,
+    `properties` JSON NULL,
+    `priority` ENUM('critical', 'normal', 'low') NOT NULL DEFAULT 'normal',
+    `_sent` BOOLEAN NOT NULL DEFAULT false,
+    `_retry_count` INTEGER NOT NULL DEFAULT 0,
+    `_created_at` BIGINT NOT NULL,
+
+    UNIQUE INDEX `trace_events_event_id_key`(`event_id`),
+    INDEX `trace_events_timestamp_idx`(`timestamp`),
+    INDEX `trace_events_user_id_idx`(`user_id`),
+    INDEX `trace_events_anonymous_id_idx`(`anonymous_id`),
+    INDEX `trace_events_session_id_idx`(`session_id`),
+    INDEX `trace_events_eventType_idx`(`eventType`),
+    INDEX `trace_events_priority_idx`(`priority`),
+    INDEX `trace_events__created_at_idx`(`_created_at`),
+    INDEX `trace_events_user_id_timestamp_idx`(`user_id`, `timestamp`),
+    INDEX `trace_events_session_id_timestamp_idx`(`session_id`, `timestamp`),
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
