@@ -98,6 +98,3 @@ src/
     ├── interceptors/          # 拦截器
     └── decorators/            # 装饰器
 ```
-
-
-docker compose up -d

@@ -6,12 +6,8 @@ import { tap } from 'rxjs/operators';
 export class LoggingInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    const { method, url } = request;
+    const { method, url, body } = request;
     const now = Date.now();
-
-    if (this.shouldLogRequest(method, url)) {
-      console.log(`[${new Date().toISOString()}] Incoming ${method} ${url}`);
-    }
 
     return next.handle().pipe(
       tap(() => {
@@ -22,9 +18,5 @@ export class LoggingInterceptor implements NestInterceptor {
         );
       }),
     );
-  }
-
-  private shouldLogRequest(method: string, url: string): boolean {
-    return method === 'POST' && url.startsWith('/api/v1/collect');
   }
 }

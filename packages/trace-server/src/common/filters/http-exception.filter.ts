@@ -9,6 +9,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
+    let code = 'INTERNAL_ERROR';
     let details: unknown = undefined;
 
     if (exception instanceof HttpException) {
@@ -20,19 +21,39 @@ export class HttpExceptionFilter implements ExceptionFilter {
       } else if (typeof exceptionResponse === 'object') {
         const resp = exceptionResponse as Record<string, unknown>;
         message = (resp.message as string) || message;
+        code = (resp.code as string) || this.getCodeFromStatus(status);
         details = resp.details;
       }
+      code = this.getCodeFromStatus(status);
     } else if (exception instanceof Error) {
       message = exception.message;
     }
 
     const errorResponse: Record<string, unknown> = {
-      code: status,
-      message,
-      data: details === undefined ? null : { details },
-      timestamp: Date.now(),
+      success: false,
+      error: {
+        code,
+        message,
+      },
     };
 
+    if (details !== undefined) {
+      errorResponse.error = { ...(errorResponse.error as Record<string, unknown>), details };
+    }
+
     response.status(status).json(errorResponse);
+  }
+
+  private getCodeFromStatus(status: number): string {
+    const codeMap: Record<number, string> = {
+      400: 'BAD_REQUEST',
+      401: 'UNAUTHORIZED',
+      403: 'FORBIDDEN',
+      404: 'NOT_FOUND',
+      409: 'CONFLICT',
+      422: 'UNPROCESSABLE_ENTITY',
+      500: 'INTERNAL_ERROR',
+    };
+    return codeMap[status] || 'ERROR';
   }
 }

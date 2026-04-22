@@ -98,15 +98,6 @@ export class ReportManager {
     this.batchReporter.pushBatch(sampledEvents);
   }
 
-  private sanitizeEventForTransport(event: TraceEvent): TraceEvent {
-    const { _sent, _createdAt, _retryCount, ...safeEvent } = event;
-    return safeEvent;
-  }
-
-  private sanitizeEventsForTransport(events: TraceEvent[]): TraceEvent[] {
-    return events.map((event) => this.sanitizeEventForTransport(event));
-  }
-
   /**
    * 立即发送单个事件（关键事件/错误事件）
    */
@@ -121,7 +112,7 @@ export class ReportManager {
 
     try {
       // 关键事件直接通过适配器发送
-      await this.networkAdapter.send(this.sanitizeEventForTransport(filteredEvent));
+      await this.networkAdapter.send(filteredEvent);
       this.config.onReportSuccess?.(filteredEvent);
     } catch (error) {
       this.handleSendError(filteredEvent, error as Error);
@@ -149,7 +140,7 @@ export class ReportManager {
         if (result !== undefined) filteredEvent = result;
       }
 
-      await this.networkAdapter.send(this.sanitizeEventForTransport(filteredEvent));
+      await this.networkAdapter.send(filteredEvent);
       this.retry.cancelRetry(event.eventId);
       this.config.onReportSuccess?.(filteredEvent);
     } catch (error) {
@@ -186,7 +177,7 @@ export class ReportManager {
     if (finalEvents.length === 0) return;
 
     try {
-      await this.networkAdapter.sendBatch(this.sanitizeEventsForTransport(finalEvents));
+      await this.networkAdapter.sendBatch(finalEvents);
 
       // 上报成功回调
       finalEvents.forEach((e) => {
