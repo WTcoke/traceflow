@@ -1,8 +1,11 @@
 export interface ApiResponse<T = unknown> {
-  code: number;
-  message: string;
-  data: T;
-  timestamp: number;
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: unknown;
+  };
 }
 
 export interface PaginatedResponse<T> extends ApiResponse<T> {
