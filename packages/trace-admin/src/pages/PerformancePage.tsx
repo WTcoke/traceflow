@@ -6,8 +6,19 @@ import { RankingTable } from '@/components/RankingTable';
 import { LineChart } from '@/components/LineChart';
 import { StatusTag } from '@/components/StatusTag';
 import {
-  Row, Col, Card, Table, Tabs, Typography, Progress, Statistic, Descriptions,
-  DatePicker, Select, Space, Tooltip
+  Row,
+  Col,
+  Card,
+  Table,
+  Tabs,
+  Typography,
+  Progress,
+  Statistic,
+  Descriptions,
+  DatePicker,
+  Select,
+  Space,
+  Tooltip,
 } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined, LoadingOutlined } from '@ant-design/icons';
 import {
@@ -32,6 +43,11 @@ const { Option } = Select;
  */
 export default function PerformancePage() {
   // Web Vitals 表格列配置
+  const getStrokeColor = (passRate: number) => {
+    if (passRate >= 80) return '#52c41a'; // 绿色
+    if (passRate >= 60) return '#faad14'; // 黄色
+    return '#ff4d4f'; // 红色
+  };
   const webVitalsColumns = [
     {
       title: '指标名称',
@@ -53,7 +69,10 @@ export default function PerformancePage() {
       dataIndex: 'value',
       key: 'value',
       render: (value: number, record: any) => (
-        <Text strong>{value}{record.unit}</Text>
+        <Text strong>
+          {value}
+          {record.unit}
+        </Text>
       ),
     },
     {
@@ -61,7 +80,10 @@ export default function PerformancePage() {
       dataIndex: 'target',
       key: 'target',
       render: (target: number, record: any) => (
-        <Text>{target}{record.unit}</Text>
+        <Text>
+          {target}
+          {record.unit}
+        </Text>
       ),
     },
     {
@@ -70,11 +92,7 @@ export default function PerformancePage() {
       key: 'passRate',
       render: (passRate: number) => (
         <div>
-          <Progress 
-            percent={passRate} 
-            size="small" 
-            status={passRate >= 80 ? 'success' : passRate >= 60 ? 'warning' : 'exception'}
-          />
+          <Progress percent={passRate} size="small" strokeColor={getStrokeColor(passRate)} />
           <Text className="ml-2">{passRate}%</Text>
         </div>
       ),
@@ -103,7 +121,7 @@ export default function PerformancePage() {
           <Space size="middle">
             <RangePicker />
             <Select defaultValue="24h" style={{ width: 120 }}>
-              {timeRangeOptions.map(option => (
+              {timeRangeOptions.map((option) => (
                 <Option key={option.value} value={option.value}>
                   {option.label}
                 </Option>
@@ -118,10 +136,7 @@ export default function PerformancePage() {
             const { key, ...restMetric } = metric;
             return (
               <Col key={key} xs={24} sm={12} md={8} lg={6}>
-                <MetricCard 
-                  {...restMetric} 
-                  metricKey={key} 
-                />
+                <MetricCard {...restMetric} metricKey={key} />
               </Col>
             );
           })}
@@ -158,18 +173,31 @@ export default function PerformancePage() {
                 <Card title="性能指标详情">
                   <Descriptions bordered column={2}>
                     {webVitalsMetrics.map((metric) => (
-                      <Descriptions.Item key={metric.name} label={
-                        <Text strong>
-                          {metric.name === 'FP' ? '首次绘制(FP)' :
-                           metric.name === 'FCP' ? '首次内容绘制(FCP)' :
-                           metric.name === 'LCP' ? '最大内容绘制(LCP)' :
-                           metric.name === 'CLS' ? '累积布局偏移(CLS)' :
-                           '可交互时间(TTI)'}
-                        </Text>
-                      }>
+                      <Descriptions.Item
+                        key={metric.name}
+                        label={
+                          <Text strong>
+                            {metric.name === 'FP'
+                              ? '首次绘制(FP)'
+                              : metric.name === 'FCP'
+                                ? '首次内容绘制(FCP)'
+                                : metric.name === 'LCP'
+                                  ? '最大内容绘制(LCP)'
+                                  : metric.name === 'CLS'
+                                    ? '累积布局偏移(CLS)'
+                                    : '可交互时间(TTI)'}
+                          </Text>
+                        }
+                      >
                         <Space direction="vertical">
-                          <Text strong>{metric.value}{metric.unit}</Text>
-                          <Text>目标值: {metric.target}{metric.unit}</Text>
+                          <Text strong>
+                            {metric.value}
+                            {metric.unit}
+                          </Text>
+                          <Text>
+                            目标值: {metric.target}
+                            {metric.unit}
+                          </Text>
                           <Text>达标率: {metric.passRate}%</Text>
                           <StatusTag status={metric.status} />
                         </Space>

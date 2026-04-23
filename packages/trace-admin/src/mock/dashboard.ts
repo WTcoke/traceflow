@@ -1,5 +1,6 @@
 import type { MetricData } from '@/types/metric';
 import type { RankingItem } from '@/types/metric';
+import type { SlowApiItem, UserLocationItem } from '@/types/metric';
 import * as echarts from 'echarts';
 
 /**
@@ -12,6 +13,7 @@ import * as echarts from 'echarts';
 /**
  * 首页指标卡片 Mock 数据
  * 包含 PV、UV、错误数、LCP 四个核心指标
+ * 注意：error/lcp 等关键词会自动识别为 negative 指标（下降=好）
  */
 export const mockMetrics: MetricData[] = [
   {
@@ -59,6 +61,37 @@ export const mockMetrics: MetricData[] = [
   },
 ];
 
+/**
+ * API 健康指标 Mock 数据（新增）
+ * 包含 API 成功率和错误率两个关键业务指标
+ * - api_success_rate: API成功率（越高越好 → positive）
+ * - error_rate: 错误率（越低越好 → negative）
+ */
+export const mockApiHealthMetrics: MetricData[] = [
+  {
+    key: 'api_success_rate',
+    label: 'API 成功率',
+    value: 99.2,
+    unit: '%',
+    trend: 0.3,
+    trendDirection: 'up',
+    compareText: '较昨日',
+    sparkline: [98.5, 98.8, 99.0, 99.1, 99.2, 99.1, 99.2],
+    status: 'success',
+  },
+  {
+    key: 'error_rate',
+    label: '页面错误率',
+    value: 0.26,
+    unit: '%',
+    trend: -0.05,
+    trendDirection: 'down',
+    compareText: '较昨日',
+    sparkline: [0.35, 0.32, 0.3, 0.28, 0.27, 0.27, 0.26],
+    status: 'success',
+  },
+];
+
 // ========== 排行表格数据 ==========
 
 /**
@@ -70,6 +103,80 @@ export const mockErrorRanking: RankingItem[] = [
   { id: '3', name: 'ReferenceError: xxx is not defined', value: 654, rank: 3 },
   { id: '4', name: 'RangeError: Invalid array length', value: 321, rank: 4 },
   { id: '5', name: 'Error: Network request failed', value: 210, rank: 5 },
+];
+
+/**
+ * 最慢接口 Top5 Mock 数据（新增）
+ * 用于展示接口性能排行，帮助开发者定位性能瓶颈
+ * avgDuration: 平均响应时间
+ * p99Duration: P99 响应时间（99%请求在此时间内完成）
+ * callCount: 调用次数
+ * errorRate: 错误率
+ */
+export const mockSlowApiRanking: SlowApiItem[] = [
+  {
+    id: '1',
+    name: '/api/v1/user/profile',
+    method: 'GET',
+    avgDuration: 3250,
+    p99Duration: 5800,
+    callCount: 123456,
+    errorRate: 2.3,
+    rank: 1,
+  },
+  {
+    id: '2',
+    name: '/api/v1/order/list',
+    method: 'POST',
+    avgDuration: 2890,
+    p99Duration: 4500,
+    callCount: 87654,
+    errorRate: 1.5,
+    rank: 2,
+  },
+  {
+    id: '3',
+    name: '/api/v1/product/search',
+    method: 'GET',
+    avgDuration: 2100,
+    p99Duration: 3200,
+    callCount: 234567,
+    errorRate: 0.8,
+    rank: 3,
+  },
+  {
+    id: '4',
+    name: '/api/v1/recommend/items',
+    method: 'GET',
+    avgDuration: 1560,
+    p99Duration: 2800,
+    callCount: 156789,
+    errorRate: 0.5,
+    rank: 4,
+  },
+  {
+    id: '5',
+    name: '/api/v1/analytics/report',
+    method: 'POST',
+    avgDuration: 1230,
+    p99Duration: 2100,
+    callCount: 45678,
+    errorRate: 0.3,
+    rank: 5,
+  },
+];
+
+/**
+ * 用户地域分布 Top5 Mock 数据（新增）
+ * 用于业务分析，了解用户地域分布情况
+ * percentage: 占比百分比
+ */
+export const mockUserLocationRanking: UserLocationItem[] = [
+  { id: '1', name: '广东', value: 8234, unit: '万', percentage: 18.5, rank: 1 },
+  { id: '2', name: '北京', value: 6521, unit: '万', percentage: 14.7, rank: 2 },
+  { id: '3', name: '上海', value: 5432, unit: '万', percentage: 12.2, rank: 3 },
+  { id: '4', name: '浙江', value: 4321, unit: '万', percentage: 9.7, rank: 4 },
+  { id: '5', name: '江苏', value: 3987, unit: '万', percentage: 9.0, rank: 5 },
 ];
 
 // ========== 图表配置 ==========
@@ -124,6 +231,65 @@ export const errorCountOption: echarts.EChartsOption = {
         ]),
       },
       lineStyle: { color: '#ff4d4f', width: 2 },
+    },
+  ],
+};
+
+/**
+ * PV/UV 趋势图 ECharts 配置（新增）
+ * 用于展示页面访问量和独立访客的趋势变化
+ * 两条折线：PV（蓝色主色）、UV（绿色辅助色）
+ */
+export const pvUvTrendOption: echarts.EChartsOption = {
+  grid: { top: 20, right: 20, bottom: 30, left: 50 },
+  legend: {
+    // 图例配置，展示两条折线含义
+    data: ['PV', 'UV'],
+    top: 0,
+  },
+  xAxis: {
+    type: 'category',
+    data: ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'],
+  },
+  yAxis: [
+    {
+      type: 'value',
+      name: 'PV',
+      position: 'left',
+    },
+    {
+      type: 'value',
+      name: 'UV',
+      position: 'right',
+    },
+  ],
+  series: [
+    {
+      name: 'PV',
+      data: [12000, 8000, 45000, 82000, 76000, 55000, 32000],
+      type: 'line',
+      smooth: true,
+      lineStyle: { color: '#1890ff', width: 2 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#1890ff40' },
+          { offset: 1, color: '#1890ff00' },
+        ]),
+      },
+    },
+    {
+      name: 'UV',
+      data: [3200, 2100, 12000, 22000, 20000, 14500, 8500],
+      type: 'line',
+      smooth: true,
+      yAxisIndex: 1, // 使用右侧 Y 轴
+      lineStyle: { color: '#52c41a', width: 2 },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: '#52c41a40' },
+          { offset: 1, color: '#52c41a00' },
+        ]),
+      },
     },
   ],
 };
