@@ -8,6 +8,7 @@ import { CollectSingleDto } from './dto/collect-single.dto';
 export class CollectService {
   constructor(private readonly trackService: TrackService) {}
 
+  // 处理单条上报
   async collectSingle(_appKey: string, dto: CollectSingleDto) {
     await this.trackService.createEvent(this.toTrackDto(dto.data));
 
@@ -18,6 +19,7 @@ export class CollectService {
     };
   }
 
+  // 处理批量上报
   async collectBatch(_appKey: string, dto: CollectBatchDto) {
     const result = await this.trackService.createEventBatch({
       events: dto.data.map((event) => this.toTrackDto(event)),
@@ -30,6 +32,7 @@ export class CollectService {
     };
   }
 
+  // 格式转换（完全正确）
   private toTrackDto(event: CollectEventDto) {
     return {
       eventId: event.eventId,
@@ -46,28 +49,6 @@ export class CollectService {
       properties: event.properties,
       priority: event.priority,
     };
-import { CreateCollectDto } from './dto/create-collect.dto';
-import { UpdateCollectDto } from './dto/update-collect.dto';
-
-@Injectable()
-export class CollectService {
-  create(createCollectDto: CreateCollectDto) {
-    return 'This action adds a new collect';
-  }
-
-  findAll() {
-    return `This action returns all collect`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} collect`;
-  }
-
-  update(id: number, updateCollectDto: UpdateCollectDto) {
-    return `This action updates a #${id} collect`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} collect`;
+    2;
   }
 }
