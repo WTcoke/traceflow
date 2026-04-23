@@ -4,7 +4,11 @@ import { CollectController } from './collect.controller';
 import { CollectService } from './collect.service';
 
 @Module({
-  imports: [TrackModule],
+imports: [TrackModule],
+import { CollectService } from './collect.service';
+import { CollectController } from './collect.controller';
+
+@Module({
   controllers: [CollectController],
   providers: [CollectService],
 })
