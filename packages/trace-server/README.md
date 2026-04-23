@@ -197,3 +197,6 @@ error/
 ├── error.controller.ts  # 查询接口
 └── error.service.ts     # 错误分析逻辑
 ```
+
+
+docker compose up -d

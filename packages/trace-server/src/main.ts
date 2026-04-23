@@ -9,7 +9,7 @@ import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  app.setGlobalPrefix('api');
+  app.setGlobalPrefix('api/v1');
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -25,7 +25,8 @@ async function bootstrap() {
   app.enableCors({
     origin: '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,X-Requested-With',
+    allowedHeaders:
+      'Content-Type,Authorization,X-Requested-With,X-App-Key,X-Sign,X-SDK-Version,Content-Encoding',
   });
 
   // Swagger 配置
