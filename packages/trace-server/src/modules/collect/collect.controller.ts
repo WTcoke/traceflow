@@ -15,11 +15,20 @@ import { CollectBatchDto } from './dto/collect-batch.dto';
 import { CollectSingleDto } from './dto/collect-single.dto';
 
 function createSuccessResponse<T>(data: T) {
+  // 生成随机的 requestId
+  const generateRequestId = () => {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+      const r = (Math.random() * 16) | 0,
+        v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   return {
     code: 200,
     message: '请求成功',
     data,
-    timestamp: Date.now(),
+    requestId: generateRequestId(),
   };
 }
 
