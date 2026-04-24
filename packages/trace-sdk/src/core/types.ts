@@ -100,8 +100,6 @@ export interface TraceEvent {
   properties?: Record<string, unknown>;
   /** 事件优先级 */
   priority?: EventPriority;
-  /** 是否已发送 */
-  _sent?: boolean;
   /** 重试次数 */
   _retryCount?: number;
   /** 事件创建时间 */

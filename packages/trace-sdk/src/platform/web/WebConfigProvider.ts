@@ -68,19 +68,19 @@ export class WebConfigProvider implements ConfigProvider {
   }
 
   private parseOS(ua: string): string {
+    if (ua.includes('Android')) return 'Android';
+    if (ua.includes('iPhone') || ua.includes('iPad') || ua.includes('iPod')) return 'iOS';
     if (ua.includes('Windows')) return 'Windows';
     if (ua.includes('Mac')) return 'macOS';
     if (ua.includes('Linux')) return 'Linux';
-    if (ua.includes('Android')) return 'Android';
-    if (ua.includes('iOS')) return 'iOS';
     return 'Unknown';
   }
 
   private parseBrowser(ua: string): string {
+    if (ua.includes('Edg')) return 'Edge';
     if (ua.includes('Chrome')) return 'Chrome';
     if (ua.includes('Firefox')) return 'Firefox';
     if (ua.includes('Safari')) return 'Safari';
-    if (ua.includes('Edge')) return 'Edge';
     if (ua.includes('IE')) return 'IE';
     return 'Unknown';
   }

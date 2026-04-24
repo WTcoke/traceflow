@@ -80,7 +80,7 @@ export class PlatformAdapterFactory {
    */
   static createConfigProvider(
     platform: Platform,
-    _storageAdapter?: IStorageAdapter, // eslint-disable-line @typescript-eslint/no-unused-vars
+    storageAdapter?: IStorageAdapter,
   ): ConfigProvider {
     switch (platform) {
       case 'miniapp-weixin':
@@ -94,9 +94,9 @@ export class PlatformAdapterFactory {
       case 'nodejs':
         return new NodeConfigProvider();
       case 'web':
-        return new WebConfigProvider();
+        return new WebConfigProvider(storageAdapter);
       default:
-        return new WebConfigProvider();
+        return new WebConfigProvider(storageAdapter);
     }
   }
 
