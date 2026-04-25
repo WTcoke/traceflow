@@ -15,7 +15,7 @@ export class CollectController {
   })
   @Post('single')
   reportSingle(@Body() createCollectDto: CreateCollectDto) {
-    return this.collectService.reportSingle(createCollectDto);
+    return this.collectService.reportSingle(createCollectDto.data);
   }
 
   @ApiOperation({
@@ -24,6 +24,6 @@ export class CollectController {
   })
   @Post('batch')
   reportBatch(@Body() batchCollectDto: BatchCollectDto) {
-    return this.collectService.reportBatch(batchCollectDto.events);
+    return this.collectService.reportBatch(batchCollectDto.data);
   }
 }

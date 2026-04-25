@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateCollectDto } from './dto/create-collect.dto';
+import { TraceEvent } from './dto/batch-collect.dto';
 
 @Injectable()
 export class CollectService {
@@ -8,7 +8,7 @@ export class CollectService {
    * @param event 事件数据
    * @returns 上报结果
    */
-  reportSingle(event: CreateCollectDto) {
+  reportSingle(event: TraceEvent) {
     // 这里可以实现实际的事件处理逻辑，比如存储到数据库
     console.log('Reporting single event:', event);
     return {
@@ -23,7 +23,7 @@ export class CollectService {
    * @param events 事件数组
    * @returns 上报结果
    */
-  reportBatch(events: CreateCollectDto[]) {
+  reportBatch(events: TraceEvent[]) {
     // 这里可以实现实际的批量事件处理逻辑，比如批量存储到数据库
     console.log('Reporting batch events:', events.length, 'events');
     return {
