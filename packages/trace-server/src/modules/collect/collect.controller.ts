@@ -1,29 +1,34 @@
 import { Controller, Post, Body } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CollectService } from './collect.service';
-import { CreateCollectDto } from './dto/create-collect.dto';
-import { BatchCollectDto } from './dto/batch-collect.dto';
+import { BatchCollectDto, SingleCollectDto } from './dto/create-collect.dto';
 
 @ApiTags('collect')
 @Controller('collect')
 export class CollectController {
   constructor(private readonly collectService: CollectService) {}
 
-  @ApiOperation({
-    summary: '单条事件上报',
-    description: '上报单条事件数据',
-  })
+  /**
+   * 单条数据上报
+   */
+  @ApiOperation({ summary: '单条数据上报', description: '接收 SDK 上报的单条埋点事件' })
+  @ApiBody({ type: SingleCollectDto })
+  @ApiResponse({ status: 200, description: '数据上报成功' })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
   @Post('single')
-  reportSingle(@Body() createCollectDto: CreateCollectDto) {
-    return this.collectService.reportSingle(createCollectDto.data);
+  createSingle(@Body() singleCollectDto: SingleCollectDto) {
+    return this.collectService.createSingle(singleCollectDto);
   }
 
-  @ApiOperation({
-    summary: '批量事件上报',
-    description: '批量上报多条事件数据',
-  })
+  /**
+   * 批量数据上报
+   */
+  @ApiOperation({ summary: '批量数据上报', description: '接收 SDK 上报的批量埋点事件' })
+  @ApiBody({ type: BatchCollectDto })
+  @ApiResponse({ status: 200, description: '数据上报成功' })
+  @ApiResponse({ status: 400, description: '请求参数错误' })
   @Post('batch')
-  reportBatch(@Body() batchCollectDto: BatchCollectDto) {
-    return this.collectService.reportBatch(batchCollectDto.data);
+  createBatch(@Body() batchCollectDto: BatchCollectDto) {
+    return this.collectService.createBatch(batchCollectDto);
   }
 }
