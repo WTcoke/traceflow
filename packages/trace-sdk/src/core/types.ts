@@ -208,6 +208,12 @@ export interface SDKConfig {
   appId: string;
   /** 上报地址 (必填) */
   serverUrl: string;
+  /** REST API 基础地址，例如 https://host/api/v1 */
+  baseUrl?: string;
+  /** 项目 ID */
+  projectId?: string;
+  /** SDK 上报鉴权 key */
+  appKey?: string;
   /** 平台类型（可选，默认自动检测） */
   platform?: Platform;
   /** 调试模式 */
@@ -233,4 +239,15 @@ export interface SDKConfig {
 
   /** 存储适配器（可选，未提供时根据平台自动选择） */
   storageAdapter?: IStorageAdapter;
+}
+
+export interface BatchCollectPayload {
+  projectId: string;
+  requestId: string;
+  data: TraceEvent[];
+}
+
+export interface SingleCollectPayload {
+  projectId: string;
+  data: TraceEvent;
 }
