@@ -3,15 +3,15 @@ version: '3.8'
 services:
   mysql:
     image: mysql:8.0
-    container_name: traceflow-mysql  # 必须和脚本一致
+    container_name: traceflow-mysql
     restart: always
     ports:
-      - '3307:3306'                # 端口和你.env一致
+      - ${MYSQL_PORT}:3306  # 从.env读取端口
     environment:
-      MYSQL_ROOT_PASSWORD: 123456   # 密码 = 你.env的 123456
-      MYSQL_DATABASE: traceflow     # 库名 = 你.env的 traceflow
-      MYSQL_USER: tracker
-      MYSQL_PASSWORD: tracker123
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}  # 从.env读取
+      MYSQL_DATABASE: ${MYSQL_DATABASE}            # 从.env读取
+      MYSQL_USER: ${MYSQL_USER}                    # 从.env读取
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}            # 从.env读取
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -22,7 +22,7 @@ services:
     container_name: tracker-redis
     restart: always
     ports:
-      - '6379:6379'
+      - ${REDIS_PORT}:6379  # 从.env读取端口
     volumes:
       - redis-data:/data
     networks:
