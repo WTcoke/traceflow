@@ -1,9 +1,8 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from './core/prisma/prisma.module';
 import { CollectModule } from './modules/collect/collect.module';
-import { ConfigModule } from '@nestjs/config';
-
+import { IpModule } from './modules/ip/ip.module';
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, CollectModule],
+  imports: [PrismaModule, CollectModule, IpModule],
 })
 export class AppModule {}
