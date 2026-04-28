@@ -1,25 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaClient, TraceEventType, TracePriority } from '@prisma/client';
 import { BatchCollectDto, SingleCollectDto } from './dto/create-collect.dto';
-import { IpService } from '../ip/ip.service';
+import { parseIP } from '../../common/utils';
 
 @Injectable()
 export class CollectService {
   private prisma = new PrismaClient();
-  constructor(private ipService: IpService) {}
 
   track(req: any) {
-    let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    let ip =
+      req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.socket.remoteAddress || '';
 
-    if (ip.includes(',')) {
-      ip = ip.split(',')[0];
+    if (typeof ip === 'string') {
+      ip = ip.split(',')[0].trim();
     }
 
-    if (ip === '::1') {
+    if (ip === '::1' || ip === '::ffff:127.0.0.1') {
       ip = '127.0.0.1';
     }
 
-    const region = this.ipService.getRegion(ip);
+    const res = parseIP(ip);
+    const region = {
+      country: res?.country || '',
+      region: res?.province || '',
+      city: res?.city || '',
+    };
 
     return {
       ip,
