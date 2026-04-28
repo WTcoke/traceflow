@@ -1,23 +1,39 @@
+version: '3.8'
+
 services:
+  # MySQL 8.0
   mysql:
     image: mysql:8.0
-    container_name: traceflow-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: traceflow
-      MYSQL_USER: traceflow
-      MYSQL_PASSWORD: traceflow123
+    container_name: tracker-mysql
+    restart: always
     ports:
-      - '3307:3306'
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: tracker_db
+      MYSQL_USER: tracker
+      MYSQL_PASSWORD: tracker123
     volumes:
-      - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-prootpassword']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - mysql-data:/var/lib/mysql
+    networks:
+      - tracker-network
+
+  # Redis
+  redis:
+    image: redis:alpine
+    container_name: tracker-redis
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis-data:/data
+    networks:
+      - tracker-network
+
+networks:
+  tracker-network:
+    driver: bridge
 
 volumes:
-  mysql_data:
+  mysql-data:
+  redis-data:
