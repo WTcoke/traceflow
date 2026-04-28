@@ -1,12 +1,16 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get, Req } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBody, ApiResponse } from '@nestjs/swagger';
 import { CollectService } from './collect.service';
 import { BatchCollectDto, SingleCollectDto } from './dto/create-collect.dto';
+import { IpService } from '../ip/ip.service';
 
 @ApiTags('collect')
 @Controller('collect')
 export class CollectController {
-  constructor(private readonly collectService: CollectService) {}
+  constructor(
+    private readonly collectService: CollectService,
+    private readonly ipService: IpService,
+  ) {}
 
   /**
    * 单条数据上报
@@ -30,5 +34,12 @@ export class CollectController {
   @Post('batch')
   createBatch(@Body() batchCollectDto: BatchCollectDto) {
     return this.collectService.createBatch(batchCollectDto);
+  }
+
+  @Get('/test-ip')
+  test(@Req() req: any) {
+    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    return this.ipService.getRegion(ip);
   }
 }
