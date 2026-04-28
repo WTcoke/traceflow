@@ -27,11 +27,11 @@ export class TraceEventDto {
 
   @ApiProperty({
     description: '事件类型',
-    enum: ['track', 'page', 'error', 'identify'],
+    enum: ['track', 'page', 'error', 'identify', 'custom'],
     example: 'track',
   })
   @IsString()
-  @IsIn(['track', 'page', 'error', 'identify'])
+  @IsIn(['track', 'page', 'error', 'identify', 'custom'])
   eventType!: string;
 
   @ApiProperty({ description: '事件时间戳', example: 1776952673930 })
@@ -71,13 +71,13 @@ export class TraceEventDto {
 
   @ApiProperty({
     description: '事件优先级',
-    enum: ['critical', 'normal'],
+    enum: ['critical', 'normal', 'low'],
     example: 'normal',
     required: false,
   })
   @IsString()
   @IsOptional()
-  @IsIn(['critical', 'normal'])
+  @IsIn(['critical', 'normal', 'low'])
   priority?: string;
 }
 

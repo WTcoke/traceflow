@@ -1,16 +1,15 @@
 version: '3.8'
 
 services:
-  # MySQL 8.0
   mysql:
     image: mysql:8.0
-    container_name: tracker-mysql
+    container_name: traceflow-mysql  # 必须和脚本一致
     restart: always
     ports:
-      - '3306:3306'
+      - '3307:3306'                # 端口和你.env一致
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: tracker_db
+      MYSQL_ROOT_PASSWORD: 123456   # 密码 = 你.env的 123456
+      MYSQL_DATABASE: traceflow     # 库名 = 你.env的 traceflow
       MYSQL_USER: tracker
       MYSQL_PASSWORD: tracker123
     volumes:
@@ -18,7 +17,6 @@ services:
     networks:
       - tracker-network
 
-  # Redis
   redis:
     image: redis:alpine
     container_name: tracker-redis

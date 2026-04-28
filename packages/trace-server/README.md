@@ -48,44 +48,11 @@ pnpm build
 pnpm start:prod
 ```
 
-## API 接口
-
-### POST /api/track - 单条事件上报
-
-```json
-{
-  "eventId": "uuid-xxx",
-  "eventType": "track",
-  "timestamp": 1713001234567,
-  "anonymousId": "anon-123",
-  "sessionId": "sess-456",
-  "deviceInfo": {
-    "deviceId": "device-001",
-    "platform": "web"
-  }
-}
-```
-
-### POST /api/track/batch - 批量事件上报
-
-```json
-{
-  "events": [{ ... }, { ... }]
-}
-```
-
-### GET /api/track/:id - 查询事件
-
-### GET /api/track/analytics/simple-stats - 简单统计
-
-查询参数：`startTime`, `endTime`, `userId`, `eventType`
-
 ## 项目结构
 
 ```
 traceflow-server/
 ├── .env                      # 环境变量（本地）
-├── .env.production           # 环境变量（生产）
 ├── .eslintrc.js              # ESLint 配置
 ├── .prettierrc               # 代码格式化
 ├── nest-cli.json             # Nest CLI 配置
