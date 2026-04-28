@@ -51,7 +51,7 @@ prisma/seed-data/
 # Docker
 .docker/
 docker-compose.override.yml
-
+docker-compose.yml
 # Bash scripts (if not needed in version control)
 scripts/*.sh
 

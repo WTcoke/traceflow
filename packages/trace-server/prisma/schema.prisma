@@ -7,6 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TraceEventType {
+  track
+  page
+  error
+  identify
+  custom
+}
+
+enum TracePriority {
+  critical
+  normal
+  low
+}
+
+model TraceEvent {
+  id          BigInt         @id @default(autoincrement())
+  eventId     String         @unique @map("event_id") @db.VarChar(255)
+  eventType   TraceEventType @map("event_type")
+  eventName   String?        @map("event_name") @db.VarChar(255)
+  timestamp   BigInt
+  userId      String?        @map("user_id") @db.VarChar(64)
+  anonymousId String         @map("anonymous_id") @db.VarChar(255)
+  sessionId   String         @map("session_id") @db.VarChar(255)
+  url         String?        @db.VarChar(500)
+  title       String?        @db.VarChar(255)
+  referrer    String?        @db.VarChar(500)
+  deviceInfo  Json           @map("device_info")
+  properties  Json?
+  priority    TracePriority  @default(normal)
+  sent        Boolean        @map("_sent") @default(true)
+  retryCount  Int            @map("_retry_count") @default(0)
+  createdAt   BigInt         @map("_created_at")
+
+  @@index([timestamp], map: "idx_timestamp")
+  @@index([userId], map: "idx_user_id")
+  @@index([anonymousId], map: "idx_anonymous_id")
+  @@index([sessionId], map: "idx_session_id")
+  @@index([eventType], map: "idx_event_type")
+  @@index([priority], map: "idx_priority")
+  @@map("trace_events")
+}
+
 model Role {
   id          BigInt   @id @default(autoincrement())
   roleName    String   @unique @map("role_name") @db.VarChar(50)
