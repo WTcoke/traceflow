@@ -82,3 +82,19 @@ export const buriedPointSchema = {
     data: { type: 'object' },
   },
 };
+
+/**
+ * 批量埋点数据验证Schema
+ */
+export const batchBuriedPointSchema = {
+  type: 'object',
+  required: ['list'],
+  properties: {
+    list: {
+      type: 'array',
+      minItems: 1,
+      maxItems: 1000,
+      items: buriedPointSchema,
+    },
+  },
+};

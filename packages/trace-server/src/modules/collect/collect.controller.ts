@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Post,
-  Headers,
-  Req,
-  Body,
-  UsePipes,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Post, Headers, Req, Body, UsePipes } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiHeader, ApiBody } from '@nestjs/swagger';
 import { Request } from 'express';
 import { createGunzip } from 'zlib';
@@ -16,6 +8,7 @@ import {
   SingleBuriedPointDto,
   BatchBuriedPointDto,
   buriedPointSchema,
+  batchBuriedPointSchema,
 } from './dto/buried-point.dto';
 import { AjvValidationPipe } from '../../common/pipes/ajv-validation.pipe';
 
@@ -110,21 +103,14 @@ export class CollectController {
   @ApiHeader({ name: 'X-Timestamp', description: '时间戳（毫秒）', required: true })
   @ApiHeader({ name: 'X-Signature', description: 'HMAC-SHA256签名', required: true })
   @ApiHeader({ name: 'Content-Encoding', description: 'gzip（可选）', required: false })
-  @ApiBody({
-    schema: {
-      type: 'object',
-      required: ['list'],
-      properties: {
-        list: { type: 'array', items: buriedPointSchema },
-      },
-    },
-  })
+  @ApiBody({ type: BatchBuriedPointDto })
+  @UsePipes(new AjvValidationPipe(batchBuriedPointSchema))
   async collectBatch(
     @Headers('X-App-Id') appId: string,
     @Headers('X-Timestamp') timestamp: string,
     @Headers('X-Signature') signature: string,
     @Req() req: Request,
-    @Body() body: any,
+    @Body() body: BatchBuriedPointDto,
   ) {
     // 获取原始body用于签名验证
     const rawBody = await this.decompressBody(req);
@@ -137,17 +123,8 @@ export class CollectController {
       rawBody,
     );
 
-    // 验证并校验batch数据
-    if (!body.list || !Array.isArray(body.list)) {
-      throw new BadRequestException('Missing required field: list (must be an array)');
-    }
-
-    // 逐个验证埋点数据
-    const validationPipe = new AjvValidationPipe(buriedPointSchema);
-    const validatedList = body.list.map((item: any) => validationPipe.transform(item));
-
     // 处理数据
-    const result = await this.collectService.collectBatch(projectId, { list: validatedList });
+    const result = await this.collectService.collectBatch(projectId, body);
 
     return result;
   }

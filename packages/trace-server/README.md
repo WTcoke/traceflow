@@ -72,6 +72,7 @@ traceflow-server/
 │   │   ├── decorators/        # 自定义装饰器
 │   │   ├── filters/           # 异常过滤器
 │   │   ├── guards/            # 鉴权守卫（JWT/项目密钥）
+│   │   ├── pipes/             # 校验管道
 │   │   ├── interceptors/      # 响应拦截/日志拦截
 │   │   ├── middleware/        # 跨域/限流中间件
 │   │   └── utils/            # 工具：UA解析、IP解析、加密等
