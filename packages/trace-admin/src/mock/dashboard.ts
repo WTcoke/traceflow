@@ -179,6 +179,34 @@ export const mockUserLocationRanking: UserLocationItem[] = [
   { id: '5', name: '江苏', value: 3987, unit: '万', percentage: 9.0, rank: 5 },
 ];
 
+/**
+ * 页面访问排行 Top5 Mock 数据（新增）
+ * 用于展示用户访问最多的页面路径
+ */
+export const mockPageVisitRanking: RankingItem[] = [
+  { id: '1', name: '/home', value: 12340, rank: 1 },
+  { id: '2', name: '/products', value: 8921, rank: 2 },
+  { id: '3', name: '/product/detail', value: 6543, rank: 3 },
+  { id: '4', name: '/cart', value: 4321, rank: 4 },
+  { id: '5', name: '/checkout', value: 2341, rank: 5 },
+];
+
+/**
+ * 平均停留时间指标 Mock 数据（新增）
+ * 用于展示用户在页面的平均停留时长
+ */
+export const mockAvgStayTimeMetric: MetricData = {
+  key: 'avg_stay_time',
+  label: '平均停留',
+  value: 3,
+  unit: 'm 42s',
+  trend: 8.2,
+  trendDirection: 'up',
+  compareText: 'vs 昨日',
+  sparkline: [85, 92, 88, 95, 105, 110, 115],
+  status: 'default',
+};
+
 // ========== 图表配置 ==========
 
 /**
