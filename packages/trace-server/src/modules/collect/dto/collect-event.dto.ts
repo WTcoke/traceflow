@@ -10,9 +10,39 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { DeviceInfoDto, PRIORITIES } from '../../track/dto/create-track.dto';
 
 const COLLECT_EVENT_TYPES = ['track', 'page', 'error', 'identify', 'custom'] as const;
+const PRIORITIES = ['critical', 'normal', 'low'] as const;
+
+export class DeviceInfoDto {
+  @ApiProperty({ example: 'Chrome', description: '浏览器名称' })
+  @IsString()
+  browser?: string;
+
+  @ApiProperty({ example: '120.0.0.0', description: '浏览器版本' })
+  @IsString()
+  browserVersion?: string;
+
+  @ApiProperty({ example: 'Windows', description: '操作系统' })
+  @IsString()
+  os?: string;
+
+  @ApiProperty({ example: '10', description: '操作系统版本' })
+  @IsString()
+  osVersion?: string;
+
+  @ApiProperty({ example: 'desktop', description: '设备类型' })
+  @IsString()
+  deviceType?: string;
+
+  @ApiProperty({ example: 'zh-CN', description: '语言' })
+  @IsString()
+  language?: string;
+
+  @ApiProperty({ example: 'Asia/Shanghai', description: '时区' })
+  @IsString()
+  timezone?: string;
+}
 
 export class CollectEventDto {
   @ApiProperty({ example: 'evt_xxxx', description: '事件唯一 ID' })

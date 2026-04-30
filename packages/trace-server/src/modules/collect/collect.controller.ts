@@ -14,12 +14,12 @@ import { CollectService } from './collect.service';
 import { CollectBatchDto } from './dto/collect-batch.dto';
 import { CollectSingleDto } from './dto/collect-single.dto';
 
-function createSuccessResponse<T>(data: T) {
+function createSuccessResponse<T>(data: T, requestId: string) {
   return {
     code: 200,
     message: '请求成功',
     data,
-    timestamp: Date.now(),
+    requestId,
   };
 }
 
@@ -39,8 +39,9 @@ export class CollectController {
     @Body() dto: CollectSingleDto,
   ) {
     this.ensureAppKey(appKey);
+    const requestId = this.generateRequestId();
     const result = await this.collectService.collectSingle(appKey!, dto);
-    return createSuccessResponse(result);
+    return createSuccessResponse(result, requestId);
   }
 
   @Post('batch')
@@ -53,13 +54,18 @@ export class CollectController {
     @Body() dto: CollectBatchDto,
   ) {
     this.ensureAppKey(appKey);
+    const requestId = this.generateRequestId();
     const result = await this.collectService.collectBatch(appKey!, dto);
-    return createSuccessResponse(result);
+    return createSuccessResponse(result, requestId);
   }
 
   private ensureAppKey(appKey: string | undefined): void {
     if (!appKey) {
       throw new UnauthorizedException('X-App-Key is required');
     }
+  }
+
+  private generateRequestId(): string {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).substr(2, 9)}`;
   }
 }

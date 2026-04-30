@@ -107,7 +107,7 @@ traceflow-server/
 │   │   ├── guards/            # 鉴权守卫（JWT/项目密钥）
 │   │   ├── interceptors/      # 响应拦截/日志拦截
 │   │   ├── middleware/        # 跨域/限流中间件
-│   │   └── utils/             # 工具函数（加密/脱敏/时间）
+│   │   └── utils/            # 工具：UA解析、IP解析、加密等
 │   ├── core/                  # 核心底层服务
 │   │   ├── prisma/            # Prisma 模块
 │   │   ├── redis/             # Redis 模块（缓存/限流/队列）
@@ -115,10 +115,10 @@ traceflow-server/
 │   │   └── bullmq/            # 异步队列（清洗/AI任务/归档）
 │   ├── modules/               # 业务模块（核心）
 │   │   ├── auth/              # 登录鉴权模块
-│   │   ├── user/              # 用户/角色/权限
+│   │   ├── system/            # 用户、角色、日志模块
 │   │   ├── project/           # 项目管理/密钥/采样率
 │   │   ├── collect/           # 埋点上报（高并发核心）
-│   │   ├── buried-point/      # 埋点数据查询/统计/清洗
+│   │   ├── statistics/        # 聚合统计模块
 │   │   ├── behavior/          # 行为监控（用户行为/页面跳转/点击/访问轨迹）
 │   │   ├── performance/       # 性能监控（加载/耗时/白屏/卡顿/资源）
 │   │   ├── error/             # 错误监控（JS错误/Promise/接口/资源失败）
@@ -197,6 +197,5 @@ error/
 ├── error.controller.ts  # 查询接口
 └── error.service.ts     # 错误分析逻辑
 ```
-
 
 docker compose up -d

@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
-import { TrackModule } from '../track/track.module';
+import { PrismaModule } from '../../core/prisma/prisma.module';
 import { CollectController } from './collect.controller';
 import { CollectService } from './collect.service';
+
 @Module({
-  imports: [TrackModule],
+  imports: [PrismaModule],
   controllers: [CollectController],
   providers: [CollectService],
 })
