@@ -6,6 +6,7 @@ import { CollectModule } from './modules/collect/collect.module';
 import { QueueModule } from './common/queue/queue.module';
 import { AiModule } from './modules/ai/ai.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
+import { AlarmModule } from './modules/alarm/alarm.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MonitorModule } from './modules/monitor/monitor.module';
     CollectModule,
     AiModule,
     MonitorModule,
+    AlarmModule,
   ],
 })
 export class AppModule {}
