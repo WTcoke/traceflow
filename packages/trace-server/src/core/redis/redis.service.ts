@@ -56,6 +56,15 @@ export class RedisService implements OnModuleDestroy {
     }
   }
 
+  async ping(): Promise<boolean> {
+    try {
+      const result = await this.client.ping();
+      return result === 'PONG';
+    } catch {
+      return false;
+    }
+  }
+
   generateCacheKey(prefix: string, ...parts: string[]): string {
     return `${prefix}:${parts.join(':')}`;
   }
