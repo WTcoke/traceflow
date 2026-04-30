@@ -238,6 +238,9 @@ importers:
       ip2region:
         specifier: ^2.3.0
         version: 2.3.0(@types/node@18.19.130)
+      jsonwebtoken:
+        specifier: ^9.0.2
+        version: 9.0.3
       langchain:
         specifier: ^1.3.4
         version: 1.3.4(@langchain/core@1.1.42(openai@6.34.0(ws@8.20.0)(zod@4.3.6))(ws@8.20.0))(openai@6.34.0(ws@8.20.0)(zod@4.3.6))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(ws@8.20.0)
@@ -256,6 +259,9 @@ importers:
       ua-parser-js:
         specifier: ^2.0.9
         version: 2.0.9
+      uuid:
+        specifier: ^9.0.1
+        version: 9.0.1
     devDependencies:
       '@nestjs/cli':
         specifier: ^10.0.0
@@ -269,12 +275,18 @@ importers:
       '@types/jest':
         specifier: ^29.0.0
         version: 29.5.14
+      '@types/jsonwebtoken':
+        specifier: ^9.0.6
+        version: 9.0.10
       '@types/node':
         specifier: ^18.15.0
         version: 18.19.130
       '@types/ua-parser-js':
         specifier: ^0.7.39
         version: 0.7.39
+      '@types/uuid':
+        specifier: ^9.0.8
+        version: 9.0.8
       jest:
         specifier: ^29.0.0
         version: 29.7.0(@types/node@18.19.130)
@@ -2130,6 +2142,9 @@ packages:
 
   '@types/ua-parser-js@0.7.39':
     resolution: {integrity: sha512-P/oDfpofrdtF5xw433SPALpdSchtJmY7nsJItf8h3KXqOslkbySh8zq4dSWXH2oTjRvJ5PczVEoCZPow6GicLg==}
+
+  '@types/uuid@9.0.8':
+    resolution: {integrity: sha512-jg+97EGIcY9AGHJJRaaPVgetKDsrTgbRjQ5Msgjh/DQKEFl0DtyRr/VCOyD1T2R1MNeWPK/u7JoGhlDZnKBAfA==}
 
   '@types/validator@13.15.10':
     resolution: {integrity: sha512-T8L6i7wCuyoK8A/ZeLYt1+q0ty3Zb9+qbSSvrIVitzT3YjZqkTZ40IbRsPanlB4h1QB3JVL1SYCdR6ngtFYcuA==}
@@ -5547,6 +5562,10 @@ packages:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
     hasBin: true
 
+  uuid@9.0.1:
+    resolution: {integrity: sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==}
+    hasBin: true
+
   v8-to-istanbul@9.3.0:
     resolution: {integrity: sha512-kiGUalWN+rgBJ/1OHZsBtU4rXZOfj/7rKQxULKlIzwzQSvMJUUNgPwJEEh7gU6xEVxC0ahoOBvN2YI8GH6FNgA==}
     engines: {node: '>=10.12.0'}
@@ -6515,7 +6534,7 @@ snapshots:
 
   '@jest/pattern@30.0.1':
     dependencies:
-      '@types/node': 18.19.130
+      '@types/node': 20.19.39
       jest-regex-util: 30.0.1
 
   '@jest/reporters@29.7.0':
@@ -7653,6 +7672,8 @@ snapshots:
   '@types/triple-beam@1.3.5': {}
 
   '@types/ua-parser-js@0.7.39': {}
+
+  '@types/uuid@9.0.8': {}
 
   '@types/validator@13.15.10': {}
 
@@ -10126,7 +10147,7 @@ snapshots:
 
   jest-worker@27.5.1:
     dependencies:
-      '@types/node': 18.19.130
+      '@types/node': 20.19.39
       merge-stream: 2.0.0
       supports-color: 8.1.1
 
@@ -11804,6 +11825,8 @@ snapshots:
   uuid@13.0.0: {}
 
   uuid@8.3.2: {}
+
+  uuid@9.0.1: {}
 
   v8-to-istanbul@9.3.0:
     dependencies:
