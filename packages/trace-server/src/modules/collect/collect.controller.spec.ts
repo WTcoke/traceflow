@@ -3,9 +3,6 @@ import { CollectController } from './collect.controller';
 import { CollectService } from './collect.service';
 import { createHmac } from 'crypto';
 
-/**
- * CollectController 单元测试
- */
 describe('CollectController', () => {
   let controller: CollectController;
   let collectService: jest.Mocked<CollectService>;
@@ -23,22 +20,22 @@ describe('CollectController', () => {
   const mockProjectKey = 'test_project_key';
 
   beforeEach(async () => {
+    collectService = {
+      verifySignature: jest.fn().mockResolvedValue({ projectId: BigInt(1) }),
+      sendToQueue: jest.fn().mockResolvedValue(undefined),
+    } as any;
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CollectController],
       providers: [
         {
           provide: CollectService,
-          useValue: {
-            verifySignature: jest.fn(),
-            collectSingle: jest.fn(),
-            collectBatch: jest.fn(),
-          },
+          useValue: collectService,
         },
       ],
     }).compile();
 
     controller = module.get<CollectController>(CollectController);
-    collectService = module.get(CollectService) as jest.Mocked<CollectService>;
   });
 
   it('should be defined', () => {
@@ -52,9 +49,6 @@ describe('CollectController', () => {
       const signature = createHmac('sha256', mockProjectKey)
         .update(`${timestamp}${body}`)
         .digest('hex');
-
-      collectService.verifySignature.mockResolvedValue({ projectId: BigInt(1) });
-      collectService.collectSingle.mockResolvedValue();
 
       const mockRequest = {
         headers: {},
@@ -71,7 +65,7 @@ describe('CollectController', () => {
 
       expect(result).toEqual({ success: true });
       expect(collectService.verifySignature).toHaveBeenCalled();
-      expect(collectService.collectSingle).toHaveBeenCalled();
+      expect(collectService.sendToQueue).toHaveBeenCalledWith(BigInt(1), [mockBuriedPointData]);
     });
   });
 
@@ -83,9 +77,6 @@ describe('CollectController', () => {
       const signature = createHmac('sha256', mockProjectKey)
         .update(`${timestamp}${body}`)
         .digest('hex');
-
-      collectService.verifySignature.mockResolvedValue({ projectId: BigInt(1) });
-      collectService.collectBatch.mockResolvedValue({ success: 2, failed: 0 });
 
       const mockRequest = {
         headers: {},
@@ -100,9 +91,9 @@ describe('CollectController', () => {
         batchBody,
       );
 
-      expect(result).toEqual({ success: 2, failed: 0 });
+      expect(result).toEqual({ success: true, count: 2 });
       expect(collectService.verifySignature).toHaveBeenCalled();
-      expect(collectService.collectBatch).toHaveBeenCalled();
+      expect(collectService.sendToQueue).toHaveBeenCalledWith(BigInt(1), batchBody.list);
     });
   });
 });

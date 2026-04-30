@@ -1,17 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollectService } from './collect.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
-import { CollectMapper } from './collect.mapper';
-import { UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { createHmac } from 'crypto';
+import { getQueueToken } from '@nestjs/bullmq';
+import { QUEUE_NAMES } from '../../common/queue/queue.constants';
 
-/**
- * CollectService 单元测试
- */
 describe('CollectService', () => {
   let service: CollectService;
   let prismaService: jest.Mocked<PrismaService>;
-  let collectMapper: jest.Mocked<CollectMapper>;
+  let mockQueue: any;
 
   const mockProject = {
     id: BigInt(1),
@@ -20,19 +18,11 @@ describe('CollectService', () => {
     status: 1,
   };
 
-  const mockBuriedPointData = {
-    msgId: 'msg_001',
-    deviceId: 'device_abc',
-    userId: 'user_123',
-    eventTime: Date.now(),
-    eventType: 'behavior' as const,
-    platform: 'web',
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-    ip: '202.108.22.5',
-    data: { page: '/home', action: 'click' },
-  };
-
   beforeEach(async () => {
+    mockQueue = {
+      add: jest.fn().mockResolvedValue({ id: 'job_123' }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CollectService,
@@ -45,19 +35,14 @@ describe('CollectService', () => {
           },
         },
         {
-          provide: CollectMapper,
-          useValue: {
-            insertSingle: jest.fn(),
-            insertBatch: jest.fn(),
-            insertAbnormal: jest.fn(),
-          },
+          provide: getQueueToken(QUEUE_NAMES.BURIED_POINT),
+          useValue: mockQueue,
         },
       ],
     }).compile();
 
     service = module.get<CollectService>(CollectService);
     prismaService = module.get(PrismaService) as jest.Mocked<PrismaService>;
-    collectMapper = module.get(CollectMapper) as jest.Mocked<CollectMapper>;
   });
 
   it('should be defined', () => {
@@ -67,7 +52,7 @@ describe('CollectService', () => {
   describe('verifySignature', () => {
     it('should verify valid signature successfully', async () => {
       const timestamp = Date.now().toString();
-      const body = JSON.stringify(mockBuriedPointData);
+      const body = JSON.stringify({ test: 'data' });
       const signature = createHmac('sha256', mockProject.projectKey)
         .update(`${timestamp}${body}`)
         .digest('hex');
@@ -132,54 +117,25 @@ describe('CollectService', () => {
     });
   });
 
-  describe('collectSingle', () => {
-    it('should collect single buried point successfully', async () => {
-      await service.collectSingle(BigInt(1), mockBuriedPointData);
+  describe('sendToQueue', () => {
+    it('should send items to queue', async () => {
+      const items = [
+        {
+          msgId: 'msg_001',
+          deviceId: 'device_abc',
+          eventTime: Date.now(),
+          eventType: 'behavior' as const,
+          platform: 'web',
+          data: { page: '/home' },
+        },
+      ];
 
-      expect(collectMapper.insertSingle).toHaveBeenCalled();
-    });
-  });
+      await service.sendToQueue(BigInt(1), items);
 
-  describe('collectBatch', () => {
-    it('should collect batch buried points successfully', async () => {
-      const batchData = {
-        list: [mockBuriedPointData, mockBuriedPointData],
-      };
-
-      const result = await service.collectBatch(BigInt(1), batchData);
-
-      expect(result.success).toBe(2);
-      expect(result.failed).toBe(0);
-      expect(collectMapper.insertBatch).toHaveBeenCalled();
-    });
-
-    it('should handle partially failed data', async () => {
-      const batchData = {
-        list: [mockBuriedPointData],
-      };
-
-      const spyParseDevice = jest
-        .spyOn(service as any, 'parseDeviceInfo')
-        .mockImplementation(() => {
-          throw new Error('Parse failed');
-        });
-
-      const result = await service.collectBatch(BigInt(1), batchData);
-
-      expect(result.success).toBe(0);
-      expect(result.failed).toBe(1);
-      expect(collectMapper.insertAbnormal).toHaveBeenCalled();
-
-      spyParseDevice.mockRestore();
-    });
-  });
-
-  describe('parseDeviceInfo', () => {
-    it('should parse user agent and IP correctly', () => {
-      const result = (service as any).parseDeviceInfo(mockBuriedPointData);
-
-      expect(result).toBeDefined();
-      expect(typeof result).toBe('object');
+      expect(mockQueue.add).toHaveBeenCalledWith('buried_point', {
+        projectId: BigInt(1),
+        items,
+      });
     });
   });
 });

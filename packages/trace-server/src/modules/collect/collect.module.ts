@@ -1,29 +1,22 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { CollectService } from './collect.service';
 import { CollectController } from './collect.controller';
 import { CollectMapper } from './collect.mapper';
 import { PrismaModule } from '../../core/prisma/prisma.module';
-import { json } from 'express';
+import { QUEUE_NAMES } from '../../common/queue/queue.constants';
+import { CollectConsumer } from './collect.consumer';
+import { DataValidatorService } from './data-validator.service';
 
-/**
- * 埋点收集模块
- */
 @Module({
-  imports: [PrismaModule],
+  imports: [
+    PrismaModule,
+    BullModule.registerQueue({
+      name: QUEUE_NAMES.BURIED_POINT,
+      streams: { events: { maxLen: 10000 } }, // 限制 Stream 长度
+    }),
+  ],
   controllers: [CollectController],
-  providers: [CollectService, CollectMapper],
+  providers: [CollectService, CollectMapper, CollectConsumer, DataValidatorService],
 })
-export class CollectModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    // 为collect路由使用raw body解析，便于签名验证和gzip解压
-    consumer
-      .apply(
-        json({
-          verify: (req, res, buf) => {
-            (req as any).rawBody = buf;
-          },
-        }),
-      )
-      .forRoutes('collect');
-  }
-}
+export class CollectModule {}

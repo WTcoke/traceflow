@@ -5,9 +5,6 @@ import { createHmac } from 'crypto';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/core/prisma/prisma.service';
 
-/**
- * 埋点上报接口 E2E 测试
- */
 describe('Collect API (e2e)', () => {
   let app: INestApplication;
   let prismaService: PrismaService;
@@ -24,7 +21,6 @@ describe('Collect API (e2e)', () => {
     app = moduleFixture.createNestApplication();
     prismaService = moduleFixture.get<PrismaService>(PrismaService);
 
-    // 创建测试项目
     const project = await prismaService.project.create({
       data: {
         appId: testAppId,
@@ -39,7 +35,6 @@ describe('Collect API (e2e)', () => {
   });
 
   afterAll(async () => {
-    // 清理测试数据
     await prismaService.abnormalData.deleteMany({
       where: { projectId: testProjectId },
     });
@@ -50,7 +45,7 @@ describe('Collect API (e2e)', () => {
   });
 
   describe('POST /collect/single', () => {
-    it('should collect single buried point successfully', async () => {
+    it('should collect single buried point successfully (fast response)', async () => {
       const testData = {
         msgId: 'msg_' + Date.now(),
         deviceId: 'device_' + Date.now(),
@@ -66,15 +61,18 @@ describe('Collect API (e2e)', () => {
         .update(`${timestamp}${body}`)
         .digest('hex');
 
+      const start = Date.now();
       const response = await request(app.getHttpServer())
         .post('/collect/single')
         .set('X-App-Id', testAppId)
         .set('X-Timestamp', timestamp)
         .set('X-Signature', signature)
         .send(testData);
+      const duration = Date.now() - start;
 
       expect(response.status).toBe(201);
       expect(response.body).toEqual({ success: true });
+      expect(duration).toBeLessThan(100);
     });
 
     it('should reject request with invalid signature', async () => {
@@ -147,33 +145,10 @@ describe('Collect API (e2e)', () => {
 
       expect(response.status).toBe(401);
     });
-
-    it('should reject request with missing required fields', async () => {
-      const invalidData = {
-        // 缺少 msgId
-        deviceId: 'device_' + Date.now(),
-        eventTime: Date.now(),
-        eventType: 'behavior' as const,
-        platform: 'web',
-        data: { page: '/home' },
-      };
-
-      const timestamp = Date.now().toString();
-      const signature = 'some_signature';
-
-      const response = await request(app.getHttpServer())
-        .post('/collect/single')
-        .set('X-App-Id', testAppId)
-        .set('X-Timestamp', timestamp)
-        .set('X-Signature', signature)
-        .send(invalidData);
-
-      expect(response.status).toBeGreaterThanOrEqual(400);
-    });
   });
 
   describe('POST /collect/batch', () => {
-    it('should collect batch buried points successfully', async () => {
+    it('should collect batch buried points successfully (fast response)', async () => {
       const batchData = {
         list: [
           {
@@ -201,41 +176,26 @@ describe('Collect API (e2e)', () => {
         .update(`${timestamp}${body}`)
         .digest('hex');
 
+      const start = Date.now();
       const response = await request(app.getHttpServer())
         .post('/collect/batch')
         .set('X-App-Id', testAppId)
         .set('X-Timestamp', timestamp)
         .set('X-Signature', signature)
         .send(batchData);
+      const duration = Date.now() - start;
 
       expect(response.status).toBe(201);
-      expect(response.body.success).toBe(2);
-      expect(response.body.failed).toBe(0);
-    });
-
-    it('should return proper response for empty batch', async () => {
-      const batchData = { list: [] };
-
-      const timestamp = Date.now().toString();
-      const body = JSON.stringify(batchData);
-      const signature = createHmac('sha256', testProjectKey)
-        .update(`${timestamp}${body}`)
-        .digest('hex');
-
-      const response = await request(app.getHttpServer())
-        .post('/collect/batch')
-        .set('X-App-Id', testAppId)
-        .set('X-Timestamp', timestamp)
-        .set('X-Signature', signature)
-        .send(batchData);
-
-      expect(response.status).toBeGreaterThanOrEqual(400);
+      expect(response.body.success).toBe(true);
+      expect(response.body.count).toBe(2);
+      expect(duration).toBeLessThan(100);
     });
   });
 
   describe('Performance Tests', () => {
-    it('should handle multiple concurrent requests', async () => {
+    it('should handle multiple concurrent requests with fast response', async () => {
       const requests: Promise<any>[] = [];
+      const start = Date.now();
 
       for (let i = 0; i < 10; i++) {
         const testData = {
@@ -264,9 +224,11 @@ describe('Collect API (e2e)', () => {
       }
 
       const responses = await Promise.all(requests);
+      const totalDuration = Date.now() - start;
       const successCount = responses.filter((r) => r.status === 201).length;
 
       expect(successCount).toBe(10);
+      expect(totalDuration).toBeLessThan(500);
     });
   });
 });

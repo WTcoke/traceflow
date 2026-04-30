@@ -13,8 +13,6 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
-
-  app.useGlobalPipes(new ValidationPipe());
   // 全局响应拦截器
   app.useGlobalInterceptors(new ResponseInterceptor());
   // 全局异常过滤器

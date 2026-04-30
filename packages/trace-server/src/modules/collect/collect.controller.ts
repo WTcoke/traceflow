@@ -1,16 +1,10 @@
-import { Controller, Post, Headers, Req, Body, UsePipes } from '@nestjs/common';
+import { Controller, Post, Headers, Req, Body, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiHeader, ApiBody } from '@nestjs/swagger';
 import { Request } from 'express';
 import { createGunzip } from 'zlib';
 import { promisify } from 'util';
 import { CollectService } from './collect.service';
-import {
-  SingleBuriedPointDto,
-  BatchBuriedPointDto,
-  buriedPointSchema,
-  batchBuriedPointSchema,
-} from './dto/buried-point.dto';
-import { AjvValidationPipe } from '../../common/pipes/ajv-validation.pipe';
+import { SingleBuriedPointDto, BatchBuriedPointDto } from './dto/buried-point.dto';
 
 const gunzipAsync = promisify(
   (input: Buffer, callback: (err: Error | null, result: Buffer) => void) => {
@@ -23,33 +17,24 @@ const gunzipAsync = promisify(
   },
 );
 
-/**
- * 埋点收集控制器
- */
 @ApiTags('埋点收集')
 @Controller('collect')
 export class CollectController {
   constructor(private readonly collectService: CollectService) {}
 
-  /**
-   * 解压gzip数据
-   */
   private async decompressBody(req: Request): Promise<string> {
     const contentEncoding = req.headers['content-encoding'];
     const rawBody = (req as any).rawBody;
 
     if (contentEncoding === 'gzip' && rawBody) {
       try {
-        // 解压
         const decompressed = await gunzipAsync(rawBody);
         return decompressed.toString('utf8');
       } catch {
-        // 如果解压失败，尝试直接使用
         return rawBody.toString('utf8');
       }
     }
 
-    // 非gzip编码
     if (rawBody) {
       return rawBody.toString('utf8');
     }
@@ -59,9 +44,6 @@ export class CollectController {
     return JSON.stringify(req.body);
   }
 
-  /**
-   * 单条埋点数据上报
-   */
   @Post('single')
   @ApiOperation({ summary: '单条埋点数据上报' })
   @ApiHeader({ name: 'X-App-Id', description: '项目应用ID', required: true })
@@ -69,7 +51,6 @@ export class CollectController {
   @ApiHeader({ name: 'X-Signature', description: 'HMAC-SHA256签名', required: true })
   @ApiHeader({ name: 'Content-Encoding', description: 'gzip（可选）', required: false })
   @ApiBody({ type: SingleBuriedPointDto })
-  @UsePipes(new AjvValidationPipe(buriedPointSchema))
   async collectSingle(
     @Headers('X-App-Id') appId: string,
     @Headers('X-Timestamp') timestamp: string,
@@ -77,10 +58,8 @@ export class CollectController {
     @Req() req: Request,
     @Body() body: SingleBuriedPointDto,
   ) {
-    // 获取原始body用于签名验证
     const rawBody = await this.decompressBody(req);
 
-    // 验证签名
     const { projectId } = await this.collectService.verifySignature(
       appId,
       timestamp,
@@ -88,15 +67,11 @@ export class CollectController {
       rawBody,
     );
 
-    // 处理数据
-    await this.collectService.collectSingle(projectId, body);
+    await this.collectService.sendToQueue(projectId, [body]);
 
     return { success: true };
   }
 
-  /**
-   * 批量埋点数据上报
-   */
   @Post('batch')
   @ApiOperation({ summary: '批量埋点数据上报' })
   @ApiHeader({ name: 'X-App-Id', description: '项目应用ID', required: true })
@@ -104,7 +79,6 @@ export class CollectController {
   @ApiHeader({ name: 'X-Signature', description: 'HMAC-SHA256签名', required: true })
   @ApiHeader({ name: 'Content-Encoding', description: 'gzip（可选）', required: false })
   @ApiBody({ type: BatchBuriedPointDto })
-  @UsePipes(new AjvValidationPipe(batchBuriedPointSchema))
   async collectBatch(
     @Headers('X-App-Id') appId: string,
     @Headers('X-Timestamp') timestamp: string,
@@ -112,10 +86,15 @@ export class CollectController {
     @Req() req: Request,
     @Body() body: BatchBuriedPointDto,
   ) {
-    // 获取原始body用于签名验证
+    // 限制单次最大条数
+    const MAX_BATCH_SIZE = 100;
+    if (!body.list || body.list.length > MAX_BATCH_SIZE) {
+      throw new BadRequestException(
+        `单次上报最多 ${MAX_BATCH_SIZE} 条数据，实际收到 ${body.list?.length || 0} 条`,
+      );
+    }
     const rawBody = await this.decompressBody(req);
 
-    // 验证签名
     const { projectId } = await this.collectService.verifySignature(
       appId,
       timestamp,
@@ -123,9 +102,8 @@ export class CollectController {
       rawBody,
     );
 
-    // 处理数据
-    const result = await this.collectService.collectBatch(projectId, body);
+    await this.collectService.sendToQueue(projectId, body.list);
 
-    return result;
+    return { success: true, count: body.list.length };
   }
 }
