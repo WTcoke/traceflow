@@ -1,26 +1,56 @@
 import { Injectable } from '@nestjs/common';
-import { CreateStatisticDto } from './dto/create-statistic.dto';
-import { UpdateStatisticDto } from './dto/update-statistic.dto';
+import { StatisticsOverviewQueryDto } from './dto/statistics-overview-query.dto';
+import { StatisticsOverviewResponseDto } from './dto/statistics-overview-response.dto';
 
 @Injectable()
 export class StatisticsService {
-  create(createStatisticDto: CreateStatisticDto) {
-    return 'This action adds a new statistic';
+  getOverview(query: StatisticsOverviewQueryDto): StatisticsOverviewResponseDto {
+    const { projectId, startTime, endTime, granularity = 'hour' } = query;
+
+    return {
+      pv: this.calculatePV(projectId, startTime, endTime, granularity),
+      uv: this.calculateUV(projectId, startTime, endTime, granularity),
+      errorCount: this.calculateErrorCount(projectId, startTime, endTime, granularity),
+      performanceIndex: this.calculatePerformanceIndex(projectId, startTime, endTime, granularity),
+    };
   }
 
-  findAll() {
-    return `This action returns all statistics`;
+  private calculatePV(
+    projectId: number,
+    startTime: number,
+    endTime: number,
+    granularity: string,
+  ): number {
+    return Math.floor(Math.random() * 100000) + 50000;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} statistic`;
+  private calculateUV(
+    projectId: number,
+    startTime: number,
+    endTime: number,
+    granularity: string,
+  ): number {
+    return Math.floor(Math.random() * 50000) + 10000;
   }
 
-  update(id: number, updateStatisticDto: UpdateStatisticDto) {
-    return `This action updates a #${id} statistic`;
+  private calculateErrorCount(
+    projectId: number,
+    startTime: number,
+    endTime: number,
+    granularity: string,
+  ): number {
+    return Math.floor(Math.random() * 500) + 10;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} statistic`;
+  private calculatePerformanceIndex(
+    projectId: number,
+    startTime: number,
+    endTime: number,
+    granularity: string,
+  ) {
+    return {
+      avgFCP: Math.floor(Math.random() * 1000) + 500,
+      avgLCP: Math.floor(Math.random() * 1500) + 800,
+    };
   }
 }
