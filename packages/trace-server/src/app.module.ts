@@ -11,6 +11,7 @@ import { SystemModule } from './modules/system/system.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { BehaviorModule } from './modules/behavior/behavior.module';
+import { ErrorModule } from './modules/error/error.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { BehaviorModule } from './modules/behavior/behavior.module';
     SystemModule,
     StatisticsModule,
     BehaviorModule,
+    ErrorModule,
   ],
 })
 export class AppModule {}

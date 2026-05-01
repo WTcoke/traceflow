@@ -1,34 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { ErrorService } from './error.service';
-import { CreateErrorDto } from './dto/create-error.dto';
-import { UpdateErrorDto } from './dto/update-error.dto';
+import { ErrorListQueryDto } from './dto/error-list-query.dto';
+import { ErrorListResponseDto } from './dto/error-list-response.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
+@ApiTags('error')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('error')
 export class ErrorController {
   constructor(private readonly errorService: ErrorService) {}
 
-  @Post()
-  create(@Body() createErrorDto: CreateErrorDto) {
-    return this.errorService.create(createErrorDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.errorService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.errorService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateErrorDto: UpdateErrorDto) {
-    return this.errorService.update(+id, updateErrorDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.errorService.remove(+id);
+  @Get('list')
+  @ApiOperation({ summary: '错误列表查询', description: '查询项目中的错误记录列表' })
+  @Permissions('error:read')
+  getErrorList(@Query() query: ErrorListQueryDto): ErrorListResponseDto {
+    return this.errorService.getErrorList(query);
   }
 }
