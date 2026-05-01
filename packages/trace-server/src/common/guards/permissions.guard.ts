@@ -37,7 +37,7 @@ export class PermissionsGuard implements CanActivate {
 
     // 获取用户权限数组（你的字段是 JSON → 直接就是数组）
     const userPermissions = Array.isArray(role.permissions) ? role.permissions : [];
-
+    console.log('用户权限：', userPermissions);
     // ========================
     // ✅ 通配符核心逻辑：只要包含 *，直接拥有所有权限
     // ========================
@@ -47,6 +47,7 @@ export class PermissionsGuard implements CanActivate {
 
     // 普通角色：必须拥有所有要求的权限
     const hasAllPermission = requiredPermissions.every((perm) => userPermissions.includes(perm));
+    console.log('权限：', requiredPermissions);
 
     if (!hasAllPermission) {
       throw new ForbiddenException('权限不足');

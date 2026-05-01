@@ -13,7 +13,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
 import { BehaviorModule } from './modules/behavior/behavior.module';
 import { ErrorModule } from './modules/error/error.module';
 import { PerformanceModule } from './modules/performance/performance.module';
-
+import { ProjectModule } from './modules/project/project.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -33,6 +33,7 @@ import { PerformanceModule } from './modules/performance/performance.module';
     BehaviorModule,
     ErrorModule,
     PerformanceModule,
+    ProjectModule,
   ],
 })
 export class AppModule {}

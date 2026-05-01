@@ -16,7 +16,12 @@ export class AuthService {
 
   async login(loginDto: LoginDto, ip?: string, userAgent?: string) {
     const user = await this.prisma.user.findUnique({
-      where: { username: loginDto.username },
+      where: {
+        username_status: {
+          username: loginDto.username,
+          status: 1,
+        },
+      },
     });
 
     if (!user) {
