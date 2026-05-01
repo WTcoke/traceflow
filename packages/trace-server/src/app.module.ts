@@ -7,6 +7,7 @@ import { QueueModule } from './common/queue/queue.module';
 import { AiModule } from './modules/ai/ai.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
 import { AlarmModule } from './modules/alarm/alarm.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { AlarmModule } from './modules/alarm/alarm.module';
     QueueModule,
     PrismaModule,
     RedisModule,
+    AuthModule,
     CollectModule,
     AiModule,
     MonitorModule,
