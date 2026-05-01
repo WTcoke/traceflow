@@ -2,7 +2,6 @@ import { Controller, Post, Body, Ip, Headers } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @ApiTags('认证模块')
 @Controller('auth')
@@ -26,17 +25,27 @@ export class AuthController {
   @ApiResponse({ status: 200, description: '刷新成功' })
   @ApiResponse({ status: 401, description: '刷新令牌无效或已过期' })
   async refresh(
-    @Body() refreshTokenDto: RefreshTokenDto,
+    @Headers('authorization') authorization: string,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
   ) {
-    return this.authService.refresh(refreshTokenDto, ip, userAgent);
+    const refreshToken = this.extractBearerToken(authorization);
+    return this.authService.refresh(refreshToken, ip, userAgent);
   }
 
   @Post('logout')
   @ApiOperation({ summary: '用户登出', description: '使当前 refreshToken 失效' })
   @ApiResponse({ status: 200, description: '登出成功' })
-  async logout(@Body() refreshTokenDto: RefreshTokenDto) {
-    return this.authService.logout(refreshTokenDto.refreshToken);
+  async logout(@Headers('authorization') authorization: string) {
+    const refreshToken = this.extractBearerToken(authorization);
+    return this.authService.logout(refreshToken);
+  }
+
+  private extractBearerToken(authorization?: string): string {
+    if (!authorization) {
+      return '';
+    }
+    const [type, token] = authorization.split(' ');
+    return type === 'Bearer' && token ? token : '';
   }
 }

@@ -5,7 +5,6 @@ import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 @Injectable()
 export class AuthService {
@@ -49,9 +48,12 @@ export class AuthService {
     };
   }
 
-  async refresh(refreshTokenDto: RefreshTokenDto, ip?: string, userAgent?: string) {
-    const tokenHash = this.hashToken(refreshTokenDto.refreshToken);
+  async refresh(refreshToken: string, ip?: string, userAgent?: string) {
+    if (!refreshToken) {
+      throw new UnauthorizedException('refreshToken 不能为空');
+    }
 
+    const tokenHash = this.hashToken(refreshToken);
     const storedToken = await this.prisma.refreshToken.findFirst({
       where: {
         tokenHash,
@@ -75,11 +77,9 @@ export class AuthService {
     await this.revokeRefreshToken(storedToken.id);
 
     const accessToken = this.generateAccessToken(user.id, user.username, user.roleId);
-    const newRefreshToken = await this.generateRefreshToken(user.id, ip, userAgent);
 
     return {
       accessToken,
-      refreshToken: newRefreshToken,
       expiresIn: this.configService.get<number>('JWT_ACCESS_EXPIRES_IN', 7200),
     };
   }

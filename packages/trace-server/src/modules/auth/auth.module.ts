@@ -14,7 +14,6 @@ import { PrismaModule } from '../../core/prisma/prisma.module';
         secret: configService.get<string>('JWT_SECRET', 'traceflow-secret'),
         signOptions: {
           expiresIn: configService.get<number>('JWT_ACCESS_EXPIRES_IN', 7200),
-          clockTolerance: 30,
         },
       }),
     }),

@@ -6,11 +6,9 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let prisma: PrismaService;
 
   const mockPrisma = {
     user: {
@@ -49,8 +47,6 @@ describe('AuthService', () => {
     }).compile();
 
     service = module.get<AuthService>(AuthService);
-    prisma = module.get<PrismaService>(PrismaService);
-
     jest.clearAllMocks();
   });
 
@@ -125,9 +121,7 @@ describe('AuthService', () => {
   });
 
   describe('refresh', () => {
-    const refreshDto: RefreshTokenDto = { refreshToken: 'valid-refresh-token' };
-
-    it('刷新成功应返回新的 token 对', async () => {
+    it('刷新成功应返回新的 accessToken', async () => {
       mockPrisma.refreshToken.findFirst.mockResolvedValue({
         id: BigInt(1),
         userId: BigInt(1),
@@ -144,20 +138,24 @@ describe('AuthService', () => {
       });
 
       mockPrisma.refreshToken.update.mockResolvedValue({});
-      mockPrisma.refreshToken.create.mockResolvedValue({ id: BigInt(2) });
 
-      const result = await service.refresh(refreshDto);
+      const result = await service.refresh('valid-refresh-token');
 
       expect(result.accessToken).toBe('mocked-jwt-token');
-      expect(result.refreshToken).toBeDefined();
       expect(result.expiresIn).toBe(7200);
+      expect((result as any).refreshToken).toBeUndefined();
+    });
+
+    it('空的 refreshToken 应抛出 UnauthorizedException', async () => {
+      await expect(service.refresh('')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('')).rejects.toThrow('refreshToken 不能为空');
     });
 
     it('无效的 refreshToken 应抛出 UnauthorizedException', async () => {
       mockPrisma.refreshToken.findFirst.mockResolvedValue(null);
 
-      await expect(service.refresh(refreshDto)).rejects.toThrow(UnauthorizedException);
-      await expect(service.refresh(refreshDto)).rejects.toThrow('刷新令牌无效或已过期');
+      await expect(service.refresh('invalid-token')).rejects.toThrow(UnauthorizedException);
+      await expect(service.refresh('invalid-token')).rejects.toThrow('刷新令牌无效或已过期');
     });
 
     it('账号已禁用时应抛出 ForbiddenException', async () => {
@@ -176,7 +174,7 @@ describe('AuthService', () => {
         roleId: BigInt(1),
       });
 
-      await expect(service.refresh(refreshDto)).rejects.toThrow(ForbiddenException);
+      await expect(service.refresh('valid-token')).rejects.toThrow(ForbiddenException);
     });
   });
 

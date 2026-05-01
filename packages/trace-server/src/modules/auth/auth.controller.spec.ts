@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -47,29 +46,42 @@ describe('AuthController', () => {
   });
 
   describe('POST /refresh', () => {
-    it('应返回新的 token 对', async () => {
-      const refreshDto: RefreshTokenDto = { refreshToken: 'valid-token' };
+    it('应从 Authorization 头提取 refreshToken 并刷新', async () => {
       const expectedResult = {
         accessToken: 'new-access-token',
-        refreshToken: 'new-refresh-token',
         expiresIn: 7200,
       };
 
       mockAuthService.refresh.mockResolvedValue(expectedResult);
 
-      const result = await controller.refresh(refreshDto, '127.0.0.1', 'jest-test');
+      const result = await controller.refresh(
+        'Bearer valid-refresh-token',
+        '127.0.0.1',
+        'jest-test',
+      );
 
-      expect(mockAuthService.refresh).toHaveBeenCalledWith(refreshDto, '127.0.0.1', 'jest-test');
+      expect(mockAuthService.refresh).toHaveBeenCalledWith(
+        'valid-refresh-token',
+        '127.0.0.1',
+        'jest-test',
+      );
       expect(result).toEqual(expectedResult);
+    });
+
+    it('Authorization 头为空时应传递空字符串', async () => {
+      mockAuthService.refresh.mockResolvedValue({ accessToken: 'token', expiresIn: 7200 });
+
+      await controller.refresh(undefined as any, '127.0.0.1', 'jest-test');
+
+      expect(mockAuthService.refresh).toHaveBeenCalledWith('', '127.0.0.1', 'jest-test');
     });
   });
 
   describe('POST /logout', () => {
-    it('应返回登出成功', async () => {
-      const refreshDto: RefreshTokenDto = { refreshToken: 'token-to-revoke' };
+    it('应从 Authorization 头提取 token 并登出', async () => {
       mockAuthService.logout.mockResolvedValue({ success: true });
 
-      const result = await controller.logout(refreshDto);
+      const result = await controller.logout('Bearer token-to-revoke');
 
       expect(mockAuthService.logout).toHaveBeenCalledWith('token-to-revoke');
       expect(result).toEqual({ success: true });
