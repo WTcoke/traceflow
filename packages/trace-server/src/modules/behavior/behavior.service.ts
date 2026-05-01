@@ -1,26 +1,32 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBehaviorDto } from './dto/create-behavior.dto';
-import { UpdateBehaviorDto } from './dto/update-behavior.dto';
+import { BehaviorPathsQueryDto } from './dto/behavior-paths-query.dto';
+import { BehaviorPathsResponseDto } from './dto/behavior-paths-response.dto';
 
 @Injectable()
 export class BehaviorService {
-  create(createBehaviorDto: CreateBehaviorDto) {
-    return 'This action adds a new behavior';
+  getPaths(query: BehaviorPathsQueryDto): BehaviorPathsResponseDto {
+    const { pageNum = 1, pageSize = 10 } = query;
+
+    const total = 50;
+    const pages = Math.ceil(total / pageSize);
+
+    return {
+      total,
+      pages,
+      list: this.generateMockData(pageSize),
+    };
   }
 
-  findAll() {
-    return `This action returns all behavior`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} behavior`;
-  }
-
-  update(id: number, updateBehaviorDto: UpdateBehaviorDto) {
-    return `This action updates a #${id} behavior`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} behavior`;
+  private generateMockData(limit: number) {
+    const mockList = [];
+    for (let i = 0; i < limit; i++) {
+      mockList.push({
+        pageUrl: `/page/${i}`,
+        eventName: i % 2 === 0 ? 'click' : 'input',
+        element: i % 3 === 0 ? `#btn-${i}` : undefined,
+        eventTime: Date.now() - i * 1000,
+      });
+    }
+    return mockList;
   }
 }

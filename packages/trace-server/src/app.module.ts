@@ -10,6 +10,7 @@ import { AlarmModule } from './modules/alarm/alarm.module';
 import { SystemModule } from './modules/system/system.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
+import { BehaviorModule } from './modules/behavior/behavior.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     AlarmModule,
     SystemModule,
     StatisticsModule,
+    BehaviorModule,
   ],
 })
 export class AppModule {}
