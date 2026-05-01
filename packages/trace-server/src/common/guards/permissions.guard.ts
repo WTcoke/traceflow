@@ -35,12 +35,20 @@ export class PermissionsGuard implements CanActivate {
       throw new ForbiddenException('角色不存在');
     }
 
-    const permissions: string[] = Array.isArray(role.permissions)
-      ? (role.permissions as string[])
-      : [];
-    const hasPermission = requiredPermissions.every((perm) => permissions.includes(perm));
+    // 获取用户权限数组（你的字段是 JSON → 直接就是数组）
+    const userPermissions = Array.isArray(role.permissions) ? role.permissions : [];
 
-    if (!hasPermission) {
+    // ========================
+    // ✅ 通配符核心逻辑：只要包含 *，直接拥有所有权限
+    // ========================
+    if (userPermissions.includes('*')) {
+      return true;
+    }
+
+    // 普通角色：必须拥有所有要求的权限
+    const hasAllPermission = requiredPermissions.every((perm) => userPermissions.includes(perm));
+
+    if (!hasAllPermission) {
       throw new ForbiddenException('权限不足');
     }
 

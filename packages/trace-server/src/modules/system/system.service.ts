@@ -50,11 +50,10 @@ export class SystemService {
   // 获取用户列表（分页）
   async findAll(query: QueryUsersDto) {
     const { pageNum = 1, pageSize = 10, status, keyword } = query;
-
     const where: any = { status: 1 };
 
     if (status !== undefined) {
-      where.status = status;
+      where.status = Number(status);
     }
 
     if (keyword) {

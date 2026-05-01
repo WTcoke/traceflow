@@ -5,12 +5,12 @@ export class QueryUsersDto {
   @IsInt()
   @IsOptional()
   @Type(() => Number)
-  pageNum?: number = 1;
+  pageNum?: number;
 
   @IsInt()
   @IsOptional()
   @Type(() => Number)
-  pageSize?: number = 10;
+  pageSize?: number;
 
   @IsInt()
   @IsOptional()

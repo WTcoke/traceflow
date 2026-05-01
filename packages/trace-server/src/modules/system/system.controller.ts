@@ -9,6 +9,8 @@ import {
   Query,
   UseGuards,
   ParseIntPipe,
+  ValidationPipe,
+  UsePipes,
 } from '@nestjs/common';
 import { SystemService } from './system.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -19,6 +21,7 @@ import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @Controller('system')
+@UsePipes(ValidationPipe)
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class SystemController {
   constructor(private readonly systemService: SystemService) {}

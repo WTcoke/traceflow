@@ -72,7 +72,7 @@ model User {
   updateTime   DateTime  @default(now()) @updatedAt @map("update_time") @db.Timestamp(3)
   projects     Project[]
   role         Role      @relation(fields: [roleId], references: [id])
-
+  @@unique([username, status], map: "idx_username_status")
   @@index([roleId])
   @@map("user")
 }
