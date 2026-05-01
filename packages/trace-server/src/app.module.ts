@@ -12,6 +12,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 import { BehaviorModule } from './modules/behavior/behavior.module';
 import { ErrorModule } from './modules/error/error.module';
+import { PerformanceModule } from './modules/performance/performance.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ErrorModule } from './modules/error/error.module';
     StatisticsModule,
     BehaviorModule,
     ErrorModule,
+    PerformanceModule,
   ],
 })
 export class AppModule {}
