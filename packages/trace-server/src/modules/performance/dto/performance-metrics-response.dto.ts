@@ -27,6 +27,12 @@ export class PerformanceMetricsResponseDto {
   @ApiProperty({ description: '白屏率', example: 0.02 })
   whiteScreenRate: number;
 
+  @ApiProperty({ description: '总数', example: 1000 })
+  total: number;
+
+  @ApiProperty({ description: '总页数', example: 50 })
+  pages: number;
+
   @ApiProperty({ description: '性能指标列表', type: [PerformanceItemDto] })
   list: PerformanceItemDto[];
 }

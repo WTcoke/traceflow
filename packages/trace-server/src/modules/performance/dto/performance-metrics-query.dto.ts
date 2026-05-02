@@ -30,4 +30,16 @@ export class PerformanceMetricsQueryDto {
   @IsOptional()
   @IsString()
   pageUrl?: string;
+
+  @ApiPropertyOptional({ description: '页码', example: 1, default: 1 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'pageNum 必须是数字' })
+  pageNum?: number;
+
+  @ApiPropertyOptional({ description: '每页数量', example: 20, default: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({}, { message: 'pageSize 必须是数字' })
+  pageSize?: number;
 }
