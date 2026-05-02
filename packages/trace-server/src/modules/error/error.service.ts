@@ -1,26 +1,59 @@
 import { Injectable } from '@nestjs/common';
-import { CreateErrorDto } from './dto/create-error.dto';
-import { UpdateErrorDto } from './dto/update-error.dto';
+import { PrismaService } from '../../core/prisma/prisma.service';
+import { ErrorListQueryDto } from './dto/error-list-query.dto';
+import { ErrorListResponseDto, ErrorItemDto } from './dto/error-list-response.dto';
 
 @Injectable()
 export class ErrorService {
-  create(createErrorDto: CreateErrorDto) {
-    return 'This action adds a new error';
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return `This action returns all error`;
-  }
+  async getList(query: ErrorListQueryDto): Promise<ErrorListResponseDto> {
+    const { projectId, startTime, endTime, errorType, pageNum = 1, pageSize = 10 } = query;
 
-  findOne(id: number) {
-    return `This action returns a #${id} error`;
-  }
+    const where: any = {
+      projectId: BigInt(projectId),
+      eventType: 'error',
+      eventTime: {
+        gte: BigInt(startTime),
+        lte: BigInt(endTime),
+      },
+    };
 
-  update(id: number, updateErrorDto: UpdateErrorDto) {
-    return `This action updates a #${id} error`;
-  }
+    if (errorType) {
+      where.vErrorType = errorType;
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} error`;
+    const skip = (pageNum - 1) * pageSize;
+
+    const [total, records] = await Promise.all([
+      this.prisma.buriedPointData.count({ where }),
+      this.prisma.buriedPointData.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { eventTime: 'desc' },
+      }),
+    ]);
+
+    const list: ErrorItemDto[] = records.map((record) => {
+      const data = record.data as any;
+      return {
+        id: String(record.id),
+        errorType: record.vErrorType || 'Unknown',
+        message: data?.message || 'No message',
+        pageUrl: record.vPageUrl || '/',
+        deviceId: record.deviceId,
+        eventTime: Number(record.eventTime),
+        stack: data?.stack || '',
+      };
+    });
+
+    const pages = Math.ceil(total / pageSize);
+
+    return {
+      total,
+      pages,
+      list,
+    };
   }
 }
