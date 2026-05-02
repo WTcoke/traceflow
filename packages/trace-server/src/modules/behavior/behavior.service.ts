@@ -1,26 +1,60 @@
 import { Injectable } from '@nestjs/common';
-import { CreateBehaviorDto } from './dto/create-behavior.dto';
-import { UpdateBehaviorDto } from './dto/update-behavior.dto';
+import { PrismaService } from '../../core/prisma/prisma.service';
+import { BehaviorPathsQueryDto } from './dto/behavior-paths-query.dto';
+import { BehaviorPathsResponseDto, BehaviorPathItemDto } from './dto/behavior-paths-response.dto';
 
 @Injectable()
 export class BehaviorService {
-  create(createBehaviorDto: CreateBehaviorDto) {
-    return 'This action adds a new behavior';
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
-  findAll() {
-    return `This action returns all behavior`;
-  }
+  async getPaths(query: BehaviorPathsQueryDto): Promise<BehaviorPathsResponseDto> {
+    const { projectId, deviceId, userId, startTime, endTime, pageNum = 1, pageSize = 10 } = query;
 
-  findOne(id: number) {
-    return `This action returns a #${id} behavior`;
-  }
+    const where: any = {
+      projectId: BigInt(projectId),
+      eventType: 'behavior',
+      eventTime: {
+        gte: BigInt(startTime),
+        lte: BigInt(endTime),
+      },
+    };
 
-  update(id: number, updateBehaviorDto: UpdateBehaviorDto) {
-    return `This action updates a #${id} behavior`;
-  }
+    if (deviceId) {
+      where.deviceId = deviceId;
+    }
 
-  remove(id: number) {
-    return `This action removes a #${id} behavior`;
+    if (userId) {
+      where.userId = userId;
+    }
+
+    const skip = (pageNum - 1) * pageSize;
+
+    const [total, records] = await Promise.all([
+      this.prisma.buriedPointData.count({ where }),
+      this.prisma.buriedPointData.findMany({
+        where,
+        skip,
+        take: pageSize,
+        orderBy: { eventTime: 'desc' },
+      }),
+    ]);
+
+    const list: BehaviorPathItemDto[] = records.map((record) => {
+      const data = record.data as any;
+      return {
+        pageUrl: record.vPageUrl || '/',
+        eventName: data?.eventName || 'unknown',
+        element: data?.element || '',
+        eventTime: Number(record.eventTime),
+      };
+    });
+
+    const pages = Math.ceil(total / pageSize);
+
+    return {
+      total,
+      pages,
+      list,
+    };
   }
 }
