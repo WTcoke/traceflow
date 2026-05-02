@@ -10,6 +10,7 @@ import { AlarmModule } from './modules/alarm/alarm.module';
 import { SystemModule } from './modules/system/system.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProjectModule } from './modules/project/project.module';
+import { ErrorModule } from './modules/error/error.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';
 
 @Module({
@@ -28,6 +29,7 @@ import { StatisticsModule } from './modules/statistics/statistics.module';
     AlarmModule,
     SystemModule,
     ProjectModule,
+    ErrorModule,
     StatisticsModule,
   ],
 })
