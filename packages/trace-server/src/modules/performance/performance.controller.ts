@@ -1,34 +1,23 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { PerformanceService } from './performance.service';
-import { CreatePerformanceDto } from './dto/create-performance.dto';
-import { UpdatePerformanceDto } from './dto/update-performance.dto';
+import { PerformanceMetricsQueryDto } from './dto/performance-metrics-query.dto';
+import { PerformanceMetricsResponseDto } from './dto/performance-metrics-response.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
+@ApiTags('performance')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('performance')
 export class PerformanceController {
   constructor(private readonly performanceService: PerformanceService) {}
 
-  @Post()
-  create(@Body() createPerformanceDto: CreatePerformanceDto) {
-    return this.performanceService.create(createPerformanceDto);
-  }
-
-  @Get()
-  findAll() {
-    return this.performanceService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.performanceService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePerformanceDto: UpdatePerformanceDto) {
-    return this.performanceService.update(+id, updatePerformanceDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.performanceService.remove(+id);
+  @Get('metrics')
+  @ApiOperation({ summary: '性能指标查询', description: '获取性能指标数据' })
+  @Permissions('performance:read')
+  async getMetrics(@Query() query: PerformanceMetricsQueryDto): Promise<PerformanceMetricsResponseDto> {
+    return this.performanceService.getMetrics(query);
   }
 }

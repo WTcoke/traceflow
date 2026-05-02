@@ -1,9 +1,11 @@
 import { IsNotEmpty, IsString, IsNumber, IsOptional, IsJSON, IsObject } from 'class-validator';
+import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateAlarmRuleDto {
   @ApiProperty({ description: '项目ID', example: 1 })
   @IsNotEmpty({ message: '项目ID不能为空' })
+  @Type(() => Number)
   @IsNumber({}, { message: '项目ID必须是数字' })
   projectId: number;
 
@@ -28,6 +30,7 @@ export class CreateAlarmRuleDto {
 
   @ApiProperty({ description: '状态：1-启用 0-禁用', example: 1, required: false })
   @IsOptional()
+  @Type(() => Number)
   @IsNumber({}, { message: '状态必须是数字' })
   status?: number;
 }

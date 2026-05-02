@@ -19,6 +19,7 @@ describe('DataValidatorService', () => {
   describe('validateAndClean', () => {
     it('should validate and clean valid data', () => {
       const validData = {
+        appId: 'app_001',
         msgId: 'msg_001',
         deviceId: 'device_abc',
         eventTime: Date.now(),
@@ -36,6 +37,7 @@ describe('DataValidatorService', () => {
 
     it('should reject data with missing required fields', () => {
       const invalidData = {
+        appId: 'app_001',
         // missing msgId
         deviceId: 'device_abc',
         eventTime: Date.now(),
@@ -53,6 +55,7 @@ describe('DataValidatorService', () => {
 
     it('should reject data with invalid eventType', () => {
       const invalidData = {
+        appId: 'app_001',
         msgId: 'msg_001',
         deviceId: 'device_abc',
         eventTime: Date.now(),
@@ -70,6 +73,7 @@ describe('DataValidatorService', () => {
     it('should clean string fields that exceed max length', () => {
       const longString = 'a'.repeat(2000);
       const data = {
+        appId: 'app_001',
         msgId: longString,
         deviceId: 'device_abc',
         eventTime: Date.now(),
@@ -86,6 +90,7 @@ describe('DataValidatorService', () => {
 
     it('should handle invalid data field', () => {
       const data = {
+        appId: 'app_001',
         msgId: 'msg_001',
         deviceId: 'device_abc',
         eventTime: Date.now(),
@@ -102,6 +107,7 @@ describe('DataValidatorService', () => {
 
     it('should clean and validate timestamp', () => {
       const data = {
+        appId: 'app_001',
         msgId: 'msg_001',
         deviceId: 'device_abc',
         eventTime: 'invalid_timestamp',
@@ -118,6 +124,7 @@ describe('DataValidatorService', () => {
 
     it('should handle null and undefined values', () => {
       const data = {
+        appId: 'app_001',
         msgId: 'msg_001',
         deviceId: 'device_abc',
         userId: null,
