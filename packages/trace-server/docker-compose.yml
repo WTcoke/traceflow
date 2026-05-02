@@ -1,23 +1,37 @@
+version: '3.8'
+
 services:
   mysql:
     image: mysql:8.0
     container_name: traceflow-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: traceflow
-      MYSQL_USER: traceflow
-      MYSQL_PASSWORD: traceflow123
+    restart: always
     ports:
-      - '3307:3306'
+      - ${MYSQL_PORT}:3306  # 从.env读取端口
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}  # 从.env读取
+      MYSQL_DATABASE: ${MYSQL_DATABASE}            # 从.env读取
+      MYSQL_USER: ${MYSQL_USER}                    # 从.env读取
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}            # 从.env读取
     volumes:
-      - mysql_data:/var/lib/mysql
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    healthcheck:
-      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'root', '-prootpassword']
-      interval: 5s
-      timeout: 5s
-      retries: 10
+      - mysql-data:/var/lib/mysql
+    networks:
+      - tracker-network
+
+  redis:
+    image: redis:alpine
+    container_name: tracker-redis
+    restart: always
+    ports:
+      - ${REDIS_PORT}:6379  # 从.env读取端口
+    volumes:
+      - redis-data:/data
+    networks:
+      - tracker-network
+
+networks:
+  tracker-network:
+    driver: bridge
 
 volumes:
-  mysql_data:
+  mysql-data:
+  redis-data:
