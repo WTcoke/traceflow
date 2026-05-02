@@ -86,10 +86,23 @@ export class CollectService {
     return aliasMap[key] || 'behavior';
   }
 
-  async validateReport(
-    data: SingleBuriedPointDto,
-    clientIp: string,
-  ): Promise<{ projectId: bigint }> {
+  /**
+   * 校验 appId 对应的 project，只查一次数据库
+   */
+  async validateAppId(appId: string): Promise<{ projectId: bigint }> {
+    const project = await this.prisma.project.findUnique({
+      where: { appId },
+    });
+    if (!project) throw new UnauthorizedException('Invalid appId');
+    if (project.status !== 1) throw new UnauthorizedException('Project is disabled');
+    return { projectId: project.id };
+  }
+
+  /**
+   * 单条数据的基础校验（字段、归一化、msgId 去重、限流）
+   * 不包含 appId 的 project 查询
+   */
+  async validateReport(data: SingleBuriedPointDto, clientIp: string): Promise<void> {
     if (!data) throw new BadRequestException('Data cannot be empty');
     // 1. 必填校验
     const requiredFields = ['appId', 'msgId', 'deviceId', 'eventTime', 'eventType', 'platform'];
@@ -115,24 +128,15 @@ export class CollectService {
       data.platform = 'h5';
     }
 
-    // 4. appId 校验
-    const project = await this.prisma.project.findUnique({
-      where: { appId: data.appId },
-    });
-    if (!project) throw new UnauthorizedException('Invalid appId');
-    if (project.status !== 1) throw new UnauthorizedException('Project is disabled');
-
-    // 5. msgId 去重
+    // 4. msgId 去重
     const msgIdKey = `dedup:msgId:${data.msgId}`;
     const exists = await this.redis.exists(msgIdKey);
     if (exists) throw new ConflictException(`Duplicate msgId: ${data.msgId}`);
     await this.redis.set(msgIdKey, '1', this.MSGID_DEDUP_TTL);
 
-    // 6. 限流
+    // 5. 限流
     await this.checkRateLimit(`rate:ip:${clientIp}`, this.IP_RATE_LIMIT);
     await this.checkRateLimit(`rate:device:${data.deviceId}`, this.DEVICE_RATE_LIMIT);
-
-    return { projectId: project.id };
   }
 
   private async checkRateLimit(key: string, maxRequests: number): Promise<void> {
