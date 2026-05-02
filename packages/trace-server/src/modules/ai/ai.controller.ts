@@ -18,7 +18,7 @@ export class AiController {
   @ApiOperation({ summary: '自然语言查询埋点数据' })
   async query(@Body() dto: AiQueryDto): Promise<AiQueryResponseDto> {
     return this.aiService.query({
-      projectId: BigInt(dto.projectId),
+      projectId: dto.projectId,
       question: dto.question,
     });
   }
@@ -27,7 +27,7 @@ export class AiController {
   @ApiOperation({ summary: '提交 AI 分析任务' })
   async analyze(@Body() dto: AiAnalyzeDto): Promise<AiAnalyzeResponseDto> {
     return this.aiService.submitAnalysis({
-      projectId: BigInt(dto.projectId),
+      projectId: dto.projectId,
       analysisType: dto.analysisType,
       data: {
         startTime: dto.startTime,
@@ -53,7 +53,7 @@ export class AiController {
       throw new BadRequestException('projectId 不能为空');
     }
     return this.aiService.getAnalysisResults({
-      projectId: BigInt(projectId),
+      projectId: Number(projectId),
       analysisType,
       pageNum: pageNum ? parseInt(pageNum, 10) : 1,
       pageSize: pageSize ? parseInt(pageSize, 10) : 10,

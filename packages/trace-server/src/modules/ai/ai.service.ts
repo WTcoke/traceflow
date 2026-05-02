@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { LangChainService } from './providers/langchain.service';
-import { AiCacheService } from './providers/ai-cache.service';
 import { AiQueueProducer } from './providers/ai-queue.producer';
 import {
   AiQueryRequest,
@@ -19,23 +18,15 @@ export class AiService {
   constructor(
     private prismaService: PrismaService,
     private langChainService: LangChainService,
-    private aiCacheService: AiCacheService,
     private aiQueueProducer: AiQueueProducer,
   ) {}
 
   async query(request: AiQueryRequest): Promise<AiQueryResponse> {
     const startTime = Date.now();
 
-    const cached = await this.aiCacheService.getCachedQuery(request.projectId, request.question);
-    if (cached) {
-      this.logger.debug(`Query cache hit: ${request.question.substring(0, 50)}`);
-      return cached as AiQueryResponse;
-    }
-
     try {
+      // 注意：自然语言查询不启用缓存，每次请求都实时生成 SQL 并执行
       const result = await this.langChainService.queryWithSql(request);
-
-      await this.aiCacheService.setCachedQuery(request.projectId, request.question, result);
 
       this.logger.log(
         `[AI Query] projectId=${request.projectId} question="${request.question.substring(0, 30)}..." ` +
@@ -76,7 +67,7 @@ export class AiService {
     return {
       total,
       list: records.map((record) => ({
-        id: record.id,
+        id: Number(record.id),
         analysisType: record.analysisType,
         analysisData: record.analysisData as Record<string, any>,
         sqlLog: record.sqlLog || undefined,
