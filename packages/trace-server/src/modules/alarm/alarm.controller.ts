@@ -22,7 +22,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('告警中心')
 @ApiBearerAuth()
-// @UseGuards(JwtAuthGuard, PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('alarm')
 export class AlarmController {
   constructor(private readonly alarmService: AlarmService) {}
