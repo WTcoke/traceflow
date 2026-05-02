@@ -13,7 +13,7 @@ export class AiCacheService {
 
   constructor(private redisService: RedisService) {}
 
-  async getCachedQuery(projectId: bigint, question: string): Promise<AiQueryResponse | null> {
+  async getCachedQuery(projectId: number, question: string): Promise<AiQueryResponse | null> {
     const cacheKey = this.buildQueryCacheKey(projectId, question);
     try {
       const cached = await this.redisService.getJson<AiQueryResponse>(cacheKey);
@@ -30,7 +30,7 @@ export class AiCacheService {
   }
 
   async setCachedQuery(
-    projectId: bigint,
+    projectId: number,
     question: string,
     response: AiQueryResponse,
   ): Promise<void> {
@@ -70,7 +70,7 @@ export class AiCacheService {
     }
   }
 
-  async invalidateQueryCache(projectId: bigint, question: string): Promise<void> {
+  async invalidateQueryCache(projectId: number, question: string): Promise<void> {
     const cacheKey = this.buildQueryCacheKey(projectId, question);
     try {
       await this.redisService.del(cacheKey);
@@ -80,7 +80,7 @@ export class AiCacheService {
     }
   }
 
-  private buildQueryCacheKey(projectId: bigint, question: string): string {
+  private buildQueryCacheKey(projectId: number, question: string): string {
     const normalizedQuestion = question.trim().toLowerCase().substring(0, 200);
     return this.redisService.generateCacheKey(
       CACHE_KEYS.AI_QUERY,

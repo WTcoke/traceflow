@@ -11,7 +11,7 @@ export class AiQueueProducer {
 
   constructor(@InjectQueue(AI_QUEUE_NAMES.AI_ANALYSIS) private analysisQueue: Queue) {}
 
-  async submitAnalysis(request: AiAnalyzeRequest, userId?: bigint): Promise<AiAnalyzeResponse> {
+  async submitAnalysis(request: AiAnalyzeRequest, userId?: number): Promise<AiAnalyzeResponse> {
     const taskId = uuidv4();
 
     const jobData: AiAnalysisJobData = {
@@ -20,7 +20,7 @@ export class AiQueueProducer {
       analysisType: request.analysisType,
       data: request.data,
       options: request.options,
-      userId,
+      userId: userId,
     };
 
     await this.analysisQueue.add('ai-analysis-task', jobData, {

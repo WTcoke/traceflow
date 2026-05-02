@@ -15,8 +15,8 @@ export enum AiAnalysisType {
 }
 
 export interface AiAnalysisResult {
-  id?: bigint;
-  projectId: bigint;
+  id?: number;
+  projectId: number;
   analysisType: string;
   analysisData: Record<string, any>;
   sqlLog?: string;
@@ -24,7 +24,7 @@ export interface AiAnalysisResult {
 }
 
 export interface AiQueryRequest {
-  projectId: bigint;
+  projectId: number;
   question: string;
 }
 
@@ -35,7 +35,7 @@ export interface AiQueryResponse {
 }
 
 export interface AiAnalyzeRequest {
-  projectId: bigint;
+  projectId: number;
   analysisType: string;
   data?: {
     startTime?: number;
@@ -51,7 +51,7 @@ export interface AiAnalyzeResponse {
 }
 
 export interface AiResultsQueryRequest {
-  projectId: bigint;
+  projectId: number;
   analysisType?: string;
   pageNum: number;
   pageSize: number;
@@ -60,7 +60,7 @@ export interface AiResultsQueryRequest {
 export interface AiResultsResponse {
   total: number;
   list: Array<{
-    id: bigint;
+    id: number;
     analysisType: string;
     analysisData: Record<string, any>;
     sqlLog?: string;
@@ -69,9 +69,9 @@ export interface AiResultsResponse {
 }
 
 export interface AiLogEntry {
-  id?: bigint;
-  projectId: bigint;
-  userId?: bigint;
+  id?: number;
+  projectId: number;
+  userId?: number;
   mode: AiMode;
   analysisType: string;
   inputTokens: number;

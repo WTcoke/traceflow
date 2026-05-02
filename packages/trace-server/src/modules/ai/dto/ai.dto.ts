@@ -92,7 +92,7 @@ export class AiAnalyzeResponseDto {
 
 export class AiResultItemDto {
   @ApiProperty({ description: '记录ID' })
-  id!: bigint;
+  id!: number;
 
   @ApiProperty({ description: '分析类型' })
   analysisType!: string;

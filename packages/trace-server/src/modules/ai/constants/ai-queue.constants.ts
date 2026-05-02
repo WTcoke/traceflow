@@ -10,7 +10,7 @@ export const AI_QUEUE_CONFIG = {
 
 export interface AiAnalysisJobData {
   taskId: string;
-  projectId: bigint;
+  projectId: number;
   analysisType: string;
   data?: {
     startTime?: number;
@@ -19,5 +19,5 @@ export interface AiAnalysisJobData {
     dataTypes?: Record<string, any>;
   };
   options?: Record<string, any>;
-  userId?: bigint;
+  userId?: number;
 }
