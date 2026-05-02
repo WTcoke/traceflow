@@ -10,7 +10,6 @@ export class RedisService implements OnModuleDestroy {
     this.client = new Redis({
       host: this.configService.get('REDIS_HOST', 'localhost'),
       port: this.configService.get('REDIS_PORT', 6379),
-      password: this.configService.get('REDIS_PASSWORD'),
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => Math.min(times * 100, 3000),
     });
@@ -67,5 +66,12 @@ export class RedisService implements OnModuleDestroy {
 
   generateCacheKey(prefix: string, ...parts: string[]): string {
     return `${prefix}:${parts.join(':')}`;
+  }
+
+  /**
+   * 获取底层 ioredis 客户端，用于 pipeline 等高级操作
+   */
+  getClient(): Redis {
+    return this.client;
   }
 }

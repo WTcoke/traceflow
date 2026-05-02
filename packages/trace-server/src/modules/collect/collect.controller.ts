@@ -1,109 +1,73 @@
-import { Controller, Post, Headers, Req, Body, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiHeader, ApiBody } from '@nestjs/swagger';
+import { Controller, Post, Body, Req, BadRequestException } from '@nestjs/common';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
-import { createGunzip } from 'zlib';
-import { promisify } from 'util';
 import { CollectService } from './collect.service';
-import { SingleBuriedPointDto, BatchBuriedPointDto } from './dto/buried-point.dto';
+import { SingleBuriedPointDto } from './dto/buried-point.dto';
 
-const gunzipAsync = promisify(
-  (input: Buffer, callback: (err: Error | null, result: Buffer) => void) => {
-    const chunks: Buffer[] = [];
-    const gunzip = createGunzip();
-    gunzip.on('data', (chunk) => chunks.push(chunk));
-    gunzip.on('end', () => callback(null, Buffer.concat(chunks)));
-    gunzip.on('error', (err) => callback(err, Buffer.alloc(0)));
-    gunzip.end(input);
-  },
-);
+/**
+ * 提取客户端真实 IP
+ * 优先读取 X-Forwarded-For，其次 request.ip / socket.remoteAddress
+ */
+function getClientIp(req: Request): string {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (typeof forwarded === 'string') {
+    return forwarded.split(',')[0].trim();
+  }
+  return (req.ip || req.socket?.remoteAddress || '127.0.0.1') as string;
+}
 
-@ApiTags('埋点收集')
+@ApiTags('collect')
 @Controller('collect')
 export class CollectController {
   constructor(private readonly collectService: CollectService) {}
 
-  private async decompressBody(req: Request): Promise<string> {
-    const contentEncoding = req.headers['content-encoding'];
-    const rawBody = (req as any).rawBody;
-
-    if (contentEncoding === 'gzip' && rawBody) {
-      try {
-        const decompressed = await gunzipAsync(rawBody);
-        return decompressed.toString('utf8');
-      } catch {
-        return rawBody.toString('utf8');
-      }
-    }
-
-    if (rawBody) {
-      return rawBody.toString('utf8');
-    }
-    if (typeof req.body === 'string') {
-      return req.body;
-    }
-    return JSON.stringify(req.body);
-  }
-
+  /**
+   * 单条埋点上报
+   */
   @Post('single')
-  @ApiOperation({ summary: '单条埋点数据上报' })
-  @ApiHeader({ name: 'X-App-Id', description: '项目应用ID', required: true })
-  @ApiHeader({ name: 'X-Timestamp', description: '时间戳（毫秒）', required: true })
-  @ApiHeader({ name: 'X-Signature', description: 'HMAC-SHA256签名', required: true })
-  @ApiHeader({ name: 'Content-Encoding', description: 'gzip（可选）', required: false })
-  @ApiBody({ type: SingleBuriedPointDto })
-  async collectSingle(
-    @Headers('X-App-Id') appId: string,
-    @Headers('X-Timestamp') timestamp: string,
-    @Headers('X-Signature') signature: string,
-    @Req() req: Request,
-    @Body() body: SingleBuriedPointDto,
-  ) {
-    const rawBody = await this.decompressBody(req);
-
-    const { projectId } = await this.collectService.verifySignature(
-      appId,
-      timestamp,
-      signature,
-      rawBody,
-    );
-
-    await this.collectService.sendToQueue(projectId, [body]);
-
-    return { success: true };
+  @ApiOperation({ summary: '单条埋点上报' })
+  async collectSingle(@Body() dto: SingleBuriedPointDto, @Req() req: Request) {
+    const clientIp = getClientIp(req);
+    // 1. 校验 appId（查 project 表）
+    const { projectId } = await this.collectService.validateAppId(dto.appId);
+    // 2. 基础校验（字段、归一化、去重、限流）
+    await this.collectService.validateReport(dto, clientIp);
+    // 3. 入队
+    await this.collectService.sendToQueue(projectId, [dto]);
+    return { received: 1 };
   }
 
+  /**
+   * 批量埋点上报
+   * 全量校验：任一条失败则整体 400
+   * 批量只查一次 project 表
+   */
   @Post('batch')
-  @ApiOperation({ summary: '批量埋点数据上报' })
-  @ApiHeader({ name: 'X-App-Id', description: '项目应用ID', required: true })
-  @ApiHeader({ name: 'X-Timestamp', description: '时间戳（毫秒）', required: true })
-  @ApiHeader({ name: 'X-Signature', description: 'HMAC-SHA256签名', required: true })
-  @ApiHeader({ name: 'Content-Encoding', description: 'gzip（可选）', required: false })
-  @ApiBody({ type: BatchBuriedPointDto })
-  async collectBatch(
-    @Headers('X-App-Id') appId: string,
-    @Headers('X-Timestamp') timestamp: string,
-    @Headers('X-Signature') signature: string,
-    @Req() req: Request,
-    @Body() body: BatchBuriedPointDto,
-  ) {
-    // 限制单次最大条数
-    const MAX_BATCH_SIZE = 100;
-    if (!body.list || body.list.length > MAX_BATCH_SIZE) {
-      throw new BadRequestException(
-        `单次上报最多 ${MAX_BATCH_SIZE} 条数据，实际收到 ${body.list?.length || 0} 条`,
-      );
+  @ApiOperation({ summary: '批量埋点上报' })
+  async collectBatch(@Body() dtoList: SingleBuriedPointDto[], @Req() req: Request) {
+    if (!Array.isArray(dtoList)) {
+      throw new BadRequestException('Request body must be an array');
     }
-    const rawBody = await this.decompressBody(req);
+    if (dtoList.length === 0) {
+      throw new BadRequestException('Batch array cannot be empty');
+    }
+    if (dtoList.length > 100) {
+      throw new BadRequestException('Batch size must not exceed 100');
+    }
 
-    const { projectId } = await this.collectService.verifySignature(
-      appId,
-      timestamp,
-      signature,
-      rawBody,
-    );
+    const clientIp = getClientIp(req);
 
-    await this.collectService.sendToQueue(projectId, body.list);
+    // 1. 先统一校验 appId（只查一次 project 表）
+    const { projectId } = await this.collectService.validateAppId(dtoList[0].appId);
 
-    return { success: true, count: body.list.length };
+    // 2. 全量基础校验：逐条验证，任一条失败则整体抛错
+    for (const dto of dtoList) {
+      await this.collectService.validateReport(dto, clientIp);
+    }
+
+    // 3. 入队
+    await this.collectService.sendToQueue(projectId, dtoList);
+
+    return { received: dtoList.length };
   }
 }
