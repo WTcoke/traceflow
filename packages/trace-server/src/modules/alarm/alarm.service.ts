@@ -71,9 +71,10 @@ export class AlarmService {
   // 告警记录列表
   async findAlarmRecords(query: AlarmRecordQueryDto) {
     const { projectId, status, pageNum = 1, pageSize = 10 } = query;
+    console.log('projectId:', typeof projectId);
 
     const where: any = {
-      projectId: BigInt(projectId),
+      projectId: Number(projectId),
     };
 
     if (status !== undefined) {
