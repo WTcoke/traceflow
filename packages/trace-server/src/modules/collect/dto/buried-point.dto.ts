@@ -1,9 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
+export const VALID_PLATFORMS = ['web', 'ios', 'android', 'miniapp', 'pc', 'h5'] as const;
+export type Platform = (typeof VALID_PLATFORMS)[number];
+
 /**
  * 单条埋点数据DTO
  */
 export class SingleBuriedPointDto {
+  @ApiProperty({ description: '项目应用ID', example: 'app_abc123' })
+  appId!: string;
+
   @ApiProperty({ description: '消息ID，必填', example: 'msg_123456' })
   msgId!: string;
 
@@ -21,9 +27,13 @@ export class SingleBuriedPointDto {
     enum: ['behavior', 'performance', 'error'],
     example: 'behavior',
   })
-  eventType!: 'behavior' | 'performance' | 'error';
+  eventType!: string;
 
-  @ApiProperty({ description: '平台', example: 'web' })
+  @ApiProperty({
+    description: '平台（支持 mini/wx/wechat/miniapp）',
+    enum: VALID_PLATFORMS,
+    example: 'web',
+  })
   platform!: string;
 
   @ApiPropertyOptional({ description: '用户代理' })
@@ -47,31 +57,29 @@ export class SingleBuriedPointDto {
   @ApiPropertyOptional({ description: '城市' })
   city?: string;
 
-  @ApiProperty({ description: '业务数据（JSON）', type: 'object' })
-  data!: Record<string, any>;
+  @ApiPropertyOptional({ description: '业务数据（JSON）', type: 'object' })
+  data?: Record<string, any>;
 }
 
 /**
  * 批量埋点数据DTO
  */
-export class BatchBuriedPointDto {
-  @ApiProperty({ description: '埋点数据列表', type: [SingleBuriedPointDto] })
-  list!: SingleBuriedPointDto[];
-}
+export type BatchBuriedPointDto = SingleBuriedPointDto[];
 
 /**
  * 埋点数据验证Schema（用于AJV验证）
  */
 export const buriedPointSchema = {
   type: 'object',
-  required: ['msgId', 'deviceId', 'eventTime', 'eventType', 'platform', 'data'],
+  required: ['appId', 'msgId', 'deviceId', 'eventTime', 'eventType', 'platform'],
   properties: {
+    appId: { type: 'string', minLength: 1, maxLength: 64 },
     msgId: { type: 'string', minLength: 1, maxLength: 64 },
     deviceId: { type: 'string', minLength: 1, maxLength: 128 },
     userId: { type: 'string', maxLength: 64, nullable: true },
     eventTime: { type: 'integer', minimum: 1 },
-    eventType: { type: 'string', enum: ['behavior', 'performance', 'error'] },
-    platform: { type: 'string', minLength: 1, maxLength: 20 },
+    eventType: { type: 'string' },
+    platform: { type: 'string' },
     userAgent: { type: 'string', nullable: true },
     ip: { type: 'string', maxLength: 45, nullable: true },
     os: { type: 'string', maxLength: 50, nullable: true },
@@ -79,7 +87,7 @@ export const buriedPointSchema = {
     country: { type: 'string', maxLength: 50, nullable: true },
     province: { type: 'string', maxLength: 50, nullable: true },
     city: { type: 'string', maxLength: 50, nullable: true },
-    data: { type: 'object' },
+    data: { type: 'object', nullable: true },
   },
 };
 
@@ -87,14 +95,8 @@ export const buriedPointSchema = {
  * 批量埋点数据验证Schema
  */
 export const batchBuriedPointSchema = {
-  type: 'object',
-  required: ['list'],
-  properties: {
-    list: {
-      type: 'array',
-      minItems: 1,
-      maxItems: 1000,
-      items: buriedPointSchema,
-    },
-  },
+  type: 'array',
+  minItems: 1,
+  maxItems: 100,
+  items: buriedPointSchema,
 };
