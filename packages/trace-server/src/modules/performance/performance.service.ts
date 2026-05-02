@@ -1,7 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { PerformanceMetricsQueryDto } from './dto/performance-metrics-query.dto';
-import { PerformanceMetricsResponseDto, PerformanceItemDto } from './dto/performance-metrics-response.dto';
+import {
+  PerformanceMetricsResponseDto,
+  PerformanceItemDto,
+} from './dto/performance-metrics-response.dto';
 
 @Injectable()
 export class PerformanceService {
@@ -34,28 +37,30 @@ export class PerformanceService {
     let count = 0;
     let whiteScreenCount = 0;
 
-    const list: PerformanceItemDto[] = records.map((record) => {
-      const data = record.data as any;
-      const fcp = data?.fcp || 0;
-      const lcp = data?.lcp || 0;
-      const dns = data?.dns || 0;
+    const list: PerformanceItemDto[] = records.map(
+      (record: { data: any; vPageUrl: any; eventTime: any }) => {
+        const data = record.data as any;
+        const fcp = data?.fcp || 0;
+        const lcp = data?.lcp || 0;
+        const dns = data?.dns || 0;
 
-      totalFCP += fcp;
-      totalLCP += lcp;
-      totalDNS += dns;
-      count++;
+        totalFCP += fcp;
+        totalLCP += lcp;
+        totalDNS += dns;
+        count++;
 
-      if (fcp === 0 && lcp === 0) {
-        whiteScreenCount++;
-      }
+        if (fcp === 0 && lcp === 0) {
+          whiteScreenCount++;
+        }
 
-      return {
-        pageUrl: record.vPageUrl || '/',
-        fcp,
-        lcp,
-        eventTime: Number(record.eventTime),
-      };
-    });
+        return {
+          pageUrl: record.vPageUrl || '/',
+          fcp,
+          lcp,
+          eventTime: Number(record.eventTime),
+        };
+      },
+    );
 
     return {
       avgFCP: count > 0 ? Math.round(totalFCP / count) : 0,

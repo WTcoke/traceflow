@@ -39,7 +39,7 @@ export class BehaviorService {
       }),
     ]);
 
-    const list: BehaviorPathItemDto[] = records.map((record) => {
+    const list: BehaviorPathItemDto[] = records.map((record: any) => {
       const data = record.data as any;
       return {
         pageUrl: record.vPageUrl || '/',
