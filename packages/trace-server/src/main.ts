@@ -10,7 +10,9 @@ import { ResponseInterceptor } from './common/interceptors/response.interceptor'
 import { swaggerConfig, swaggerOptions } from './config/swagger.config';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn'],
+  });
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
 
@@ -32,8 +34,7 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' ? false : '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders:
-      'Content-Type,Authorization,X-Requested-With,X-App-Id,X-Timestamp,X-Signature,Content-Encoding',
+    allowedHeaders: 'Content-Type,Authorization,X-Requested-With,Content-Encoding',
     exposedHeaders: 'X-Request-Id',
   });
 
