@@ -274,12 +274,12 @@ SQL: {sql}
 时间范围：{startTime} - {endTime}
 
 请返回JSON格式的分析结果：
-{
+{{
   "summary": "总体概述",
   "keyFindings": ["发现1", "发现2"],
   "trends": ["趋势1", "趋势2"],
   "recommendations": ["建议1", "建议2"]
-}`,
+}}`,
 
       error_analysis: `分析以下错误日志，识别问题模式：
 
@@ -288,13 +288,13 @@ SQL: {sql}
 时间范围：{startTime} - {endTime}
 
 请返回JSON格式的分析结果：
-{
+{{
   "errorCount": 数量,
   "errorTypes": ["类型1", "类型2"],
-  "topErrors": [{"error": "错误描述", "count": 次数}],
+  "topErrors": [{{"error": "错误描述", "count": 次数}}],
   "rootCauses": ["原因1", "原因2"],
   "suggestions": ["建议1", "建议2"]
-}`,
+}}`,
 
       performance_analysis: `分析以下性能数据，识别优化点：
 
@@ -303,12 +303,12 @@ SQL: {sql}
 时间范围：{startTime} - {endTime}
 
 请返回JSON格式的分析结果：
-{
+{{
   "avgLoadTime": 平均加载时间,
   "slowPages": ["慢页面1", "慢页面2"],
-  "performanceScores": {"score": 分数, "metrics": {}},
-  "optimizationTips": ["优化建议1", "优化建议2"]
-}`,
+  "performanceScores": {{"score": 分数, "metrics": {{}}}},
+  "optimizationTips": ["优化建议1", "建议2"]
+}}`,
 
       behavior_analysis: `分析以下用户行为数据，发现用户模式：
 
@@ -317,13 +317,13 @@ SQL: {sql}
 时间范围：{startTime} - {endTime}
 
 请返回JSON格式的分析结果：
-{
+{{
   "userCount": 用户数,
   "sessionCount": 会话数,
   "topPages": ["页面1", "页面2"],
   "userPatterns": ["模式1", "模式2"],
   "insights": ["洞察1", "洞察2"]
-}`,
+}}`,
 
       anomaly_detection: `检测埋点数据中的异常：
 
@@ -332,11 +332,11 @@ SQL: {sql}
 时间范围：{startTime} - {endTime}
 
 请返回JSON格式的分析结果：
-{
-  "anomalies": [{"time": 时间戳, "type": "异常类型", "score": 置信度, "description": "描述"}],
+{{
+  "anomalies": [{{"time": 时间戳, "type": "异常类型", "score": 置信度, "description": "描述"}}],
   "summary": "异常摘要",
   "recommendations": ["处理建议1", "处理建议2"]
-}`,
+}}`,
     };
 
     return templates[analysisType] || templates.statistics;
