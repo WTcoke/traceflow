@@ -1,5 +1,5 @@
-import { Controller, Post, Get, Body, Query, BadRequestException } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
+import { Controller, Post, Get, Body, Query, BadRequestException, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { AiService } from './ai.service';
 import {
   AiQueryDto,
@@ -8,6 +8,9 @@ import {
   AiAnalyzeResponseDto,
   AiResultResponseDto,
 } from './dto/ai.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('AI 智能分析')
 @Controller('ai')
@@ -15,7 +18,10 @@ export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('query')
+  @ApiBearerAuth()
   @ApiOperation({ summary: '自然语言查询埋点数据' })
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('ai.query')
   async query(@Body() dto: AiQueryDto): Promise<AiQueryResponseDto> {
     return this.aiService.query({
       projectId: dto.projectId,
@@ -25,6 +31,8 @@ export class AiController {
 
   @Post('analyze')
   @ApiOperation({ summary: '提交 AI 分析任务' })
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('ai.analyze')
   async analyze(@Body() dto: AiAnalyzeDto): Promise<AiAnalyzeResponseDto> {
     return this.aiService.submitAnalysis({
       projectId: dto.projectId,
@@ -38,7 +46,10 @@ export class AiController {
   }
 
   @Get('results')
+  @ApiBearerAuth()
   @ApiOperation({ summary: '查询 AI 分析结果' })
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions('ai.results')
   @ApiQuery({ name: 'projectId', description: '项目ID', required: true })
   @ApiQuery({ name: 'analysisType', description: '分析类型', required: false })
   @ApiQuery({ name: 'pageNum', description: '页码', required: false })
