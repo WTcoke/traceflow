@@ -10,7 +10,7 @@ export class RedisService implements OnModuleDestroy {
     this.client = new Redis({
       host: this.configService.get('REDIS_HOST', 'localhost'),
       port: this.configService.get('REDIS_PORT', 6379),
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null,
       retryStrategy: (times) => Math.min(times * 100, 3000),
     });
   }

@@ -1,162 +1,239 @@
 import {
   Injectable,
   UnauthorizedException,
-  ConflictException,
-  BadRequestException,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { RedisService } from '../../core/redis/redis.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { QUEUE_NAMES } from '../../common/queue/queue.constants';
-import { SingleBuriedPointDto } from './dto/buried-point.dto';
+import { BuriedPointEventDto } from './dto/buried-point.dto';
+import { createHash, createHmac } from 'node:crypto';
+
+interface CachedAppIdInfo {
+  projectId: string;
+  status: number;
+}
 
 @Injectable()
 export class CollectService {
-  // 限流阈值
-  private readonly IP_RATE_LIMIT = 60;
-  private readonly DEVICE_RATE_LIMIT = 20;
-  private readonly RATE_LIMIT_WINDOW = 60;
+  private readonly logger = new Logger(CollectService.name);
 
-  private readonly MSGID_DEDUP_TTL = 24 * 60 * 60;
-
-  private readonly VALID_PLATFORMS = ['web', 'ios', 'android', 'miniapp', 'pc', 'h5'];
-  private readonly VALID_EVENT_TYPES = ['behavior', 'performance', 'error'];
+  private readonly APPID_CACHE_TTL = 300;
+  private readonly APPID_CACHE_PREFIX = 'cache:appid';
+  private readonly SIGNATURE_EXPIRE_WINDOW = 5 * 60 * 1000;
+  private readonly BATCH_QUEUE_TTL = 300;
+  private redisEnabled = true;
 
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
     @InjectQueue(QUEUE_NAMES.BURIED_POINT)
     private readonly buriedPointQueue: Queue,
-  ) {}
-
-  /**
-   * 平台别名归一化
-   */
-  private normalizePlatform(platform: string): string {
-    if (!platform) return 'h5';
-    const key = platform.toLowerCase().trim();
-
-    const aliasMap: Record<string, string> = {
-      mini: 'miniapp',
-      wx: 'miniapp',
-      wechat: 'miniapp',
-      miniapp: 'miniapp',
-      web: 'web',
-      ios: 'ios',
-      android: 'android',
-      pc: 'pc',
-      h5: 'h5',
-    };
-
-    return aliasMap[key] || 'h5';
-  }
-
-  /**
-   * 事件类型归一化（支持 click / pv / visit 等）
-   */
-  private normalizeEventType(eventType: string): string {
-    if (!eventType) return 'behavior';
-    const key = eventType.toLowerCase().trim();
-
-    const aliasMap: Record<string, string> = {
-      // 行为类型
-      click: 'behavior',
-      pv: 'behavior',
-      pageview: 'behavior',
-      visit: 'behavior',
-      view: 'behavior',
-      action: 'behavior',
-      behavior: 'behavior',
-
-      // 性能类型
-      performance: 'performance',
-      load: 'performance',
-      speed: 'performance',
-
-      // 错误类型
-      error: 'error',
-      err: 'error',
-      exception: 'error',
-      crash: 'error',
-    };
-
-    return aliasMap[key] || 'behavior';
-  }
-
-  /**
-   * 校验 appId 对应的 project，只查一次数据库
-   */
-  async validateAppId(appId: string): Promise<{ projectId: bigint }> {
-    const project = await this.prisma.project.findUnique({
-      where: { appId },
+  ) {
+    this.checkRedisHealth().catch(() => {
+      this.redisEnabled = false;
+      this.logger.warn('Redis health check failed, running in degraded mode');
     });
-    if (!project) throw new UnauthorizedException('Invalid appId');
-    if (project.status !== 1) throw new UnauthorizedException('Project is disabled');
+  }
+
+  private async checkRedisHealth(): Promise<void> {
+    const isHealthy = await this.redis.ping();
+    if (!isHealthy) {
+      throw new Error('Redis connection failed');
+    }
+  }
+
+  private async getCachedAppId(appId: string): Promise<CachedAppIdInfo | null> {
+    if (!this.redisEnabled) return null;
+    const cacheKey = `${this.APPID_CACHE_PREFIX}:${appId}`;
+    try {
+      return await this.redis.getJson<CachedAppIdInfo>(cacheKey);
+    } catch (error) {
+      this.logger.error(`Failed to get cached appId: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  private async setCachedAppId(appId: string, info: CachedAppIdInfo): Promise<void> {
+    if (!this.redisEnabled) return;
+    const cacheKey = `${this.APPID_CACHE_PREFIX}:${appId}`;
+    try {
+      await this.redis.setJson(cacheKey, info, this.APPID_CACHE_TTL);
+    } catch (error) {
+      this.logger.error(`Failed to set cached appId: ${(error as Error).message}`);
+    }
+  }
+
+  async validateAppId(appId: string): Promise<{ projectId: bigint }> {
+    const cached = await this.getCachedAppId(appId);
+    if (cached) {
+      if (cached.status !== 1) {
+        throw new UnauthorizedException('Project is disabled');
+      }
+      return { projectId: BigInt(cached.projectId) };
+    }
+
+    const project = await this.prisma.project.findUnique({ where: { appId } });
+    if (!project) {
+      this.logger.warn(`Invalid appId: ${appId}`);
+      throw new UnauthorizedException('Invalid appId');
+    }
+    if (project.status !== 1) {
+      this.logger.warn(`Project disabled: ${appId}`);
+      throw new UnauthorizedException('Project is disabled');
+    }
+
+    await this.setCachedAppId(appId, { projectId: project.id.toString(), status: project.status });
     return { projectId: project.id };
   }
 
-  /**
-   * 单条数据的基础校验（字段、归一化、msgId 去重、限流）
-   * 不包含 appId 的 project 查询
-   */
-  async validateReport(data: SingleBuriedPointDto, clientIp: string): Promise<void> {
-    if (!data) throw new BadRequestException('Data cannot be empty');
-    // 1. 必填校验
-    const requiredFields = ['appId', 'msgId', 'deviceId', 'eventTime', 'eventType', 'platform'];
-    const missing = requiredFields.filter((f) => {
-      const v = (data as any)[f];
-      return v === undefined || v === null || v === '';
-    });
-    if (missing.length > 0) {
-      throw new BadRequestException(`Missing required fields: ${missing.join(', ')}`);
+  async verifySignature(
+    appId: string,
+    timestamp: string,
+    signature: string,
+    body: string,
+  ): Promise<{ projectId: bigint }> {
+    const now = Date.now();
+    const requestTime = parseInt(timestamp, 10);
+
+    if (Math.abs(now - requestTime) > this.SIGNATURE_EXPIRE_WINDOW) {
+      throw new UnauthorizedException('Signature expired');
     }
 
-    // 2. 自动归一化事件类型（不再直接报错）
-    data.eventType = this.normalizeEventType(data.eventType);
+    const project = await this.validateAppId(appId);
+    const expectedSignature = createHmac('sha256', project.projectId.toString())
+      .update(`${timestamp}${body}`)
+      .digest('hex');
 
-    // 3. 自动归一化平台
-    data.platform = this.normalizePlatform(data.platform);
-
-    // 最终兜底校验（几乎不会触发）
-    if (!this.VALID_EVENT_TYPES.includes(data.eventType)) {
-      data.eventType = 'behavior';
+    if (expectedSignature !== signature) {
+      throw new UnauthorizedException('Invalid signature');
     }
-    if (!this.VALID_PLATFORMS.includes(data.platform)) {
-      data.platform = 'h5';
-    }
-
-    // 4. msgId 去重
-    const msgIdKey = `dedup:msgId:${data.msgId}`;
-    const exists = await this.redis.exists(msgIdKey);
-    if (exists) throw new ConflictException(`Duplicate msgId: ${data.msgId}`);
-    await this.redis.set(msgIdKey, '1', this.MSGID_DEDUP_TTL);
-
-    // 5. 限流
-    await this.checkRateLimit(`rate:ip:${clientIp}`, this.IP_RATE_LIMIT);
-    await this.checkRateLimit(`rate:device:${data.deviceId}`, this.DEVICE_RATE_LIMIT);
+    return { projectId: project.projectId };
   }
 
-  private async checkRateLimit(key: string, maxRequests: number): Promise<void> {
-    const current = await this.redis.get(key);
-    const count = current ? parseInt(current, 10) : 0;
-    if (count >= maxRequests) {
-      throw new HttpException('Too Many Requests', HttpStatus.TOO_MANY_REQUESTS);
-    }
+  private async isBatchAlreadyQueued(
+    projectId: bigint,
+    items: BuriedPointEventDto[],
+  ): Promise<boolean> {
+    if (!this.redisEnabled) return false;
 
+    const batchKey = this.generateRedisBatchKey(projectId, items);
     const client = this.redis.getClient();
-    const pipeline = client.pipeline();
-    pipeline.incr(key);
-    if (count === 0) pipeline.expire(key, this.RATE_LIMIT_WINDOW);
-    await pipeline.exec();
+
+    try {
+      const result = await client.eval(
+        `
+        if redis.call('SETNX', KEYS[1], ARGV[1]) == 1 then
+          redis.call('EXPIRE', KEYS[1], ARGV[2])
+          return 1
+        else
+          return 0
+        end
+        `,
+        1,
+        batchKey,
+        '1',
+        this.BATCH_QUEUE_TTL,
+      );
+      return result === 0;
+    } catch (error) {
+      this.logger.error(`Redis error during batch deduplication: ${(error as Error).message}`);
+      return false;
+    }
   }
 
-  async sendToQueue(projectId: bigint, items: SingleBuriedPointDto[]): Promise<void> {
-    await this.buriedPointQueue.add('buried_point', {
-      projectId: String(projectId),
-      items,
-    });
+  // ====================== 优化核心：抽象公共哈希方法 ======================
+  /**
+   * 生成批次唯一哈希值（提取重复逻辑）
+   */
+  private generateBatchHash(items: BuriedPointEventDto[]): string {
+    const msgIds = items
+      .map((item) => item.msgId)
+      .sort()
+      .join('-');
+    return createHash('md5').update(msgIds).digest('hex');
+  }
+
+  /**
+   * 生成Redis去重键（仅保留格式拼接）
+   */
+  private generateRedisBatchKey(projectId: bigint, items: BuriedPointEventDto[]): string {
+    const hash = this.generateBatchHash(items);
+    return `queue:batch:${projectId}:${hash}`;
+  }
+
+  /**
+   * 生成队列JobID（仅保留格式拼接）
+   */
+  private generateJobId(projectId: bigint, items: BuriedPointEventDto[]): string {
+    const hash = this.generateBatchHash(items);
+    return `queue_batch_${projectId}_${hash}`;
+  }
+  // ======================================================================
+
+  async sendToQueue(projectId: bigint, items: BuriedPointEventDto[]): Promise<void> {
+    if (items.length === 0) return;
+
+    const chunks = this.chunkArray(items, 100);
+    const jobs = [];
+    const duplicateChecks = [];
+
+    for (const chunk of chunks) {
+      if (this.redisEnabled) {
+        duplicateChecks.push(
+          this.isBatchAlreadyQueued(projectId, chunk).then((isDuplicate) => ({
+            chunk,
+            isDuplicate,
+          })),
+        );
+      } else {
+        jobs.push(this.createJob(projectId, chunk));
+      }
+    }
+
+    if (duplicateChecks.length > 0) {
+      const results = await Promise.all(duplicateChecks);
+      for (const { chunk, isDuplicate } of results) {
+        if (!isDuplicate) jobs.push(this.createJob(projectId, chunk));
+      }
+    }
+
+    if (jobs.length === 0) return;
+
+    try {
+      await this.buriedPointQueue.addBulk(jobs);
+    } catch (error) {
+      this.logger.error(`Failed to send items to queue: ${(error as Error).message}`);
+      throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  private createJob(projectId: bigint, chunk: BuriedPointEventDto[]) {
+    return {
+      name: QUEUE_NAMES.BURIED_POINT,
+      data: {
+        projectId: String(projectId),
+        items: chunk,
+      },
+      opts: {
+        jobId: this.generateJobId(projectId, chunk),
+        removeOnComplete: 1000,
+        removeOnFail: 5000,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
+      },
+    };
+  }
+
+  private chunkArray<T>(array: T[], size: number): T[][] {
+    const result: T[][] = [];
+    for (let i = 0; i < array.length; i += size) {
+      result.push(array.slice(i, i + size));
+    }
+    return result;
   }
 }

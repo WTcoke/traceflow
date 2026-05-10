@@ -11,19 +11,19 @@ import { swaggerConfig, swaggerOptions } from './config/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
-    logger: ['error', 'warn'],
+    logger: ['error', 'warn', 'log', 'debug'],
   });
   app.use(helmet());
   app.setGlobalPrefix('api/v1');
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-    }),
-  );
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     transform: true,
+  //     transformOptions: {
+  //       enableImplicitConversion: true,
+  //     },
+  //   }),
+  // );
   // 全局响应拦截器
   app.useGlobalInterceptors(new ResponseInterceptor());
   // 全局异常过滤器

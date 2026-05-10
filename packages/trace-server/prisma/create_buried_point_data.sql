@@ -1,6 +1,6 @@
-CREATE TABLE `buried_point_data` (
+CREATE TABLE IF NOT EXISTS `buried_point_data` (
   `id` BIGINT UNSIGNED NOT NULL COMMENT '主键ID（雪花算法）',
-  `msg_id` VARCHAR(64) NULL COMMENT 'SDK上报唯一ID，去重用',
+  `msg_id` VARCHAR(64) NOT NULL COMMENT 'SDK上报唯一ID，去重用',
   `project_id` BIGINT UNSIGNED NOT NULL,
   `device_id` VARCHAR(128) NOT NULL,
   `user_id` VARCHAR(64) NULL,
@@ -20,6 +20,7 @@ CREATE TABLE `buried_point_data` (
   `v_page_url` VARCHAR(500) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(`data`,'$.pageUrl'))) VIRTUAL,
   `create_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
   PRIMARY KEY (`id`,`event_time`),
+  UNIQUE INDEX `uk_msg_id` (`msg_id`),  
   INDEX `idx_project_event_time` (`project_id`,`event_time`),
   INDEX `idx_device_time` (`device_id`,`event_time`),
   INDEX `idx_event_type_time` (`event_type`,`event_time`),

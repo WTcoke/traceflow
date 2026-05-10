@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { RedisModule } from '../../core/redis/redis.module';
+import { RedisService } from '../../core/redis/redis.service';
 
 @Module({
   imports: [
+    RedisModule,
     BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get('REDIS_HOST', 'localhost'),
-          port: configService.get('REDIS_PORT', 6379),
-        },
+      imports: [ConfigModule, RedisModule],
+      useFactory: (redisService: RedisService) => ({
+        connection: redisService.getClient(),
         defaultJobOptions: {
           attempts: 3,
           backoff: {
@@ -19,7 +19,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
           },
         },
       }),
-      inject: [ConfigService],
+      inject: [RedisService],
     }),
   ],
   exports: [BullModule],

@@ -1,73 +1,73 @@
-import { Controller, Post, Body, Req, BadRequestException } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  Post,
+  Body,
+  Req,
+  BadRequestException,
+  Logger,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
 import { CollectService } from './collect.service';
-import { SingleBuriedPointDto } from './dto/buried-point.dto';
+import { BuriedPointDto } from './dto/buried-point.dto';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../common/guards/permissions.guard';
+import { Permissions } from '../../common/decorators/permissions.decorator';
 
-/**
- * 提取客户端真实 IP
- * 优先读取 X-Forwarded-For，其次 request.ip / socket.remoteAddress
- */
-function getClientIp(req: Request): string {
-  const forwarded = req.headers['x-forwarded-for'];
-  if (typeof forwarded === 'string') {
-    return forwarded.split(',')[0].trim();
-  }
-  return (req.ip || req.socket?.remoteAddress || '127.0.0.1') as string;
-}
-
+const MAX_REQUEST_SIZE = '100kb';
 @ApiTags('collect')
+@ApiBearerAuth()
 @Controller('collect')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CollectController {
+  private readonly logger = new Logger(CollectController.name);
+
   constructor(private readonly collectService: CollectService) {}
 
   /**
-   * 单条埋点上报
+   * 统一的埋点上报接口（推荐使用）
+   * single: { "appId": "...", "events": [event] }
+   * batch: { "appId": "...", "events": [event, event, event] }
    */
-  @Post('single')
-  @ApiOperation({ summary: '单条埋点上报' })
-  async collectSingle(@Body() dto: SingleBuriedPointDto, @Req() req: Request) {
-    const clientIp = getClientIp(req);
-    // 1. 校验 appId（查 project 表）
+  @Post()
+  @ApiOperation({ summary: '统一埋点上报（推荐）' })
+  @Permissions('collect:write')
+  async collect(@Body() dto: BuriedPointDto, @Req() req: Request) {
+    this.validateContentLength(req);
+
     const { projectId } = await this.collectService.validateAppId(dto.appId);
-    // 2. 基础校验（字段、归一化、去重、限流）
-    await this.collectService.validateReport(dto, clientIp);
-    // 3. 入队
-    await this.collectService.sendToQueue(projectId, [dto]);
-    return { received: 1 };
+
+    this.collectService.sendToQueue(projectId, dto.events).catch((error) => {
+      this.logger.error(`Failed to send events to queue: ${error.message}`);
+    });
+
+    return { received: dto.events.length };
   }
 
-  /**
-   * 批量埋点上报
-   * 全量校验：任一条失败则整体 400
-   * 批量只查一次 project 表
-   */
-  @Post('batch')
-  @ApiOperation({ summary: '批量埋点上报' })
-  async collectBatch(@Body() dtoList: SingleBuriedPointDto[], @Req() req: Request) {
-    if (!Array.isArray(dtoList)) {
-      throw new BadRequestException('Request body must be an array');
+  private validateContentLength(req: Request): void {
+    const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+    const maxBytes = this.parseSize(MAX_REQUEST_SIZE);
+
+    if (contentLength > maxBytes) {
+      throw new BadRequestException(`Request body size exceeds ${MAX_REQUEST_SIZE}`);
     }
-    if (dtoList.length === 0) {
-      throw new BadRequestException('Batch array cannot be empty');
-    }
-    if (dtoList.length > 100) {
-      throw new BadRequestException('Batch size must not exceed 100');
-    }
+  }
 
-    const clientIp = getClientIp(req);
+  private parseSize(size: string): number {
+    const units: Record<string, number> = {
+      b: 1,
+      kb: 1024,
+      mb: 1024 * 1024,
+      gb: 1024 * 1024 * 1024,
+    };
 
-    // 1. 先统一校验 appId（只查一次 project 表）
-    const { projectId } = await this.collectService.validateAppId(dtoList[0].appId);
+    const match = size.toLowerCase().match(/^(\d+)\s*(b|kb|mb|gb)?$/);
+    if (!match) return 1024 * 100;
 
-    // 2. 全量基础校验：逐条验证，任一条失败则整体抛错
-    for (const dto of dtoList) {
-      await this.collectService.validateReport(dto, clientIp);
-    }
+    const value = parseInt(match[1], 10);
+    const unit = match[2] || 'b';
 
-    // 3. 入队
-    await this.collectService.sendToQueue(projectId, dtoList);
-
-    return { received: dtoList.length };
+    return value * (units[unit] || 1);
   }
 }
