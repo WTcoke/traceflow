@@ -14,13 +14,13 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 
 @ApiTags('AI 智能分析')
 @Controller('ai')
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class AiController {
   constructor(private readonly aiService: AiService) {}
 
   @Post('query')
   @ApiBearerAuth()
   @ApiOperation({ summary: '自然语言查询埋点数据' })
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('ai.query')
   async query(@Body() dto: AiQueryDto): Promise<AiQueryResponseDto> {
     return this.aiService.query({
@@ -31,7 +31,6 @@ export class AiController {
 
   @Post('analyze')
   @ApiOperation({ summary: '提交 AI 分析任务' })
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('ai.analyze')
   async analyze(@Body() dto: AiAnalyzeDto): Promise<AiAnalyzeResponseDto> {
     return this.aiService.submitAnalysis({
@@ -48,12 +47,7 @@ export class AiController {
   @Get('results')
   @ApiBearerAuth()
   @ApiOperation({ summary: '查询 AI 分析结果' })
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions('ai.results')
-  @ApiQuery({ name: 'projectId', description: '项目ID', required: true })
-  @ApiQuery({ name: 'analysisType', description: '分析类型', required: false })
-  @ApiQuery({ name: 'pageNum', description: '页码', required: false })
-  @ApiQuery({ name: 'pageSize', description: '每页数量', required: false })
   async getResults(
     @Query('projectId') projectId: string,
     @Query('analysisType') analysisType?: string,
