@@ -6,7 +6,7 @@ import { PrismaService } from '../../../core/prisma/prisma.service';
 import { AI_QUEUE_NAMES, AiAnalysisJobData } from '../constants/ai-queue.constants';
 import { LangChainService } from './langchain.service';
 import { AiCacheService } from './ai-cache.service';
-import { AiAnalysisResult } from '../interfaces/ai.interfaces';
+import { AiAnalysisResultDto } from '../dto/ai.dto';
 
 @Injectable()
 @Processor(AI_QUEUE_NAMES.AI_ANALYSIS)
@@ -21,7 +21,7 @@ export class AiQueueConsumer extends WorkerHost {
     super();
   }
 
-  async process(job: Job<AiAnalysisJobData>): Promise<AiAnalysisResult> {
+  async process(job: Job<AiAnalysisJobData>): Promise<AiAnalysisResultDto> {
     const { taskId, projectId, analysisType, data, options } = job.data;
     this.logger.log(`Processing AI analysis task: ${taskId}`);
 
@@ -46,7 +46,7 @@ export class AiQueueConsumer extends WorkerHost {
     }
   }
 
-  private async saveAnalysisResult(result: AiAnalysisResult): Promise<void> {
+  private async saveAnalysisResult(result: AiAnalysisResultDto): Promise<void> {
     try {
       await this.prismaService.aiAnalysisResult.create({
         data: {

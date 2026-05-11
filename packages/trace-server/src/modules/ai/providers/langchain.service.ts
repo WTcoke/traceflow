@@ -4,12 +4,12 @@ import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { PrismaService } from '../../../core/prisma/prisma.service';
 import {
-  AiQueryRequest,
-  AiQueryResponse,
-  AiAnalyzeRequest,
-  AiAnalysisResult,
+  AiQueryRequestDto,
+  AiQueryResponseDto,
+  AiAnalyzeRequestDto,
+  AiAnalysisResultDto,
   AiAnalysisType,
-} from '../interfaces/ai.interfaces';
+} from '../dto/ai.dto';
 
 @Injectable()
 export class LangChainService {
@@ -38,7 +38,7 @@ export class LangChainService {
     });
   }
 
-  async queryWithSql(request: AiQueryRequest): Promise<AiQueryResponse> {
+  async queryWithSql(request: AiQueryRequestDto): Promise<AiQueryResponseDto> {
     const sqlTemplate = `你是一个埋点数据分析助手。根据用户的自然语言问题，生成对应的 SQL 查询语句。
 
 【表1：buried_point_data】埋点数据明细表（大表，已按 event_time 分区）
@@ -150,10 +150,7 @@ SQL: {sql}
     }
   }
 
-  private async executeSqlSafely(
-    sql: string,
-    projectId: number,
-  ): Promise<Array<Record<string, any>>> {
+  async executeSqlSafely(sql: string, projectId: number): Promise<Array<Record<string, any>>> {
     let cleanSql = sql.trim();
     cleanSql = cleanSql.replace(/;$/, '');
     const normalizedSql = cleanSql.toLowerCase();
@@ -230,11 +227,35 @@ SQL: {sql}
     return obj;
   }
 
-  async query(request: AiQueryRequest): Promise<AiQueryResponse> {
+  async query(request: AiQueryRequestDto): Promise<AiQueryResponseDto> {
     return this.queryWithSql(request);
   }
 
-  async analyze(request: AiAnalyzeRequest): Promise<AiAnalysisResult> {
+  async generateExplanation(
+    sql: string,
+    result: Array<Record<string, any>>,
+    question: string,
+  ): Promise<string> {
+    const explanationPrompt = `基于以下 SQL 查询结果，用自然语言解释给用户。
+
+SQL: {sql}
+结果: {result}
+问题: {question}
+
+请给出简洁明了的解释。`;
+
+    const expPrompt = await PromptTemplate.fromTemplate(explanationPrompt);
+    const expChain = expPrompt.pipe(this.llm);
+    const explanationResult = await expChain.invoke({
+      sql,
+      result: JSON.stringify(result),
+      question,
+    });
+
+    return explanationResult.content as string;
+  }
+
+  async analyze(request: AiAnalyzeRequestDto): Promise<AiAnalysisResultDto> {
     const template = this.getAnalysisTemplate(request.analysisType);
 
     const prompt = await PromptTemplate.fromTemplate(template);

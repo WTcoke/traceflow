@@ -3,7 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { v4 as uuidv4 } from 'uuid';
 import { AI_QUEUE_NAMES, AiAnalysisJobData } from '../constants/ai-queue.constants';
-import { AiAnalyzeRequest, AiAnalyzeResponse } from '../interfaces/ai.interfaces';
+import { AiAnalyzeRequestDto, AiAnalyzeResponseDto } from '../dto/ai.dto';
 
 @Injectable()
 export class AiQueueProducer {
@@ -11,7 +11,10 @@ export class AiQueueProducer {
 
   constructor(@InjectQueue(AI_QUEUE_NAMES.AI_ANALYSIS) private analysisQueue: Queue) {}
 
-  async submitAnalysis(request: AiAnalyzeRequest, userId?: number): Promise<AiAnalyzeResponse> {
+  async submitAnalysis(
+    request: AiAnalyzeRequestDto,
+    userId?: number,
+  ): Promise<AiAnalyzeResponseDto> {
     const taskId = uuidv4();
 
     const jobData: AiAnalysisJobData = {
