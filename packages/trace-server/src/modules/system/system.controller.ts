@@ -19,7 +19,8 @@ import { QueryUsersDto } from './dto/query-users.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { Permissions } from '../../common/decorators/permissions.decorator';
-
+import { ApiTags } from '@nestjs/swagger';
+@ApiTags('系统管理')
 @Controller('system')
 @UsePipes(ValidationPipe)
 @UseGuards(JwtAuthGuard, PermissionsGuard)
