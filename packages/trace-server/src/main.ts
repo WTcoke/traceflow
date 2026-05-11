@@ -27,7 +27,8 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.NODE_ENV === 'production' ? false : '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,X-Requested-With',
+    allowedHeaders:
+      'Content-Type,Authorization,X-Requested-With,X-App-Key,X-Sign,X-SDK-Version,Content-Encoding',
   });
 
   // Swagger 配置

@@ -13,9 +13,8 @@
     "moduleResolution": "bundler",
     "isolatedModules": true,
     "types": ["node"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src/**/*"],

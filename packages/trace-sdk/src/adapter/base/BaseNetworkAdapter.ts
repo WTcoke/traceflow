@@ -48,11 +48,19 @@ export abstract class BaseNetworkAdapter implements INetworkAdapter {
   }
 
   protected getBatchUrl(): string {
-    return `${this.requireBaseUrl()}/collect/batch`;
+    if (this.config.baseUrl) {
+      return `${this.normalizeBaseUrl(this.config.baseUrl)}/collect/batch`;
+    }
+
+    return this.requireServerUrl();
   }
 
   protected getSingleUrl(): string {
-    return `${this.requireBaseUrl()}/collect/single`;
+    if (this.config.baseUrl) {
+      return `${this.normalizeBaseUrl(this.config.baseUrl)}/collect/single`;
+    }
+
+    return this.requireServerUrl();
   }
 
   protected createBatchPayload(events: TraceEvent[]): BatchCollectPayload {
@@ -70,12 +78,16 @@ export abstract class BaseNetworkAdapter implements INetworkAdapter {
     };
   }
 
-  private requireBaseUrl(): string {
-    if (!this.config.baseUrl) {
-      throw new Error('baseUrl is required');
+  private requireServerUrl(): string {
+    if (!this.config.serverUrl) {
+      throw new Error('serverUrl is required');
     }
 
-    return this.config.baseUrl;
+    return this.config.serverUrl;
+  }
+
+  private normalizeBaseUrl(url: string): string {
+    return url.endsWith('/') ? url.slice(0, -1) : url;
   }
 
   private requireProjectId(): string {

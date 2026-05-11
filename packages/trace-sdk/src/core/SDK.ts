@@ -78,7 +78,8 @@ export class TraceSDK {
 
     // 获取配置提供者
     this.configProvider =
-      config.configProvider || PlatformAdapterFactory.createConfigProvider(this.platform);
+      config.configProvider ||
+      PlatformAdapterFactory.createConfigProvider(this.platform, this.storageAdapter);
 
     // 初始化网络适配器
     const networkAdapter =
@@ -167,6 +168,8 @@ export class TraceSDK {
   }
 
   private createEvent(eventType: EventType, properties?: Record<string, unknown>): TraceEvent {
+    const fallbackDeviceId = this.anonymousId || generateId();
+
     return {
       eventId: generateId(),
       eventType,
@@ -177,7 +180,7 @@ export class TraceSDK {
       // init 完成前 deviceInfo 为 null，提供默认值
       deviceInfo: this.deviceInfo ?? {
         platform: this.platform as DeviceInfo['platform'],
-        deviceId: '',
+        deviceId: fallbackDeviceId,
       },
       properties,
       _createdAt: Date.now(),
@@ -195,7 +198,10 @@ export class TraceSDK {
     if (this.isDestroyed()) return;
 
     try {
-      const event = this.createEvent('track', { event: eventName, ...properties });
+      const event = {
+        ...this.createEvent('track', properties),
+        eventName,
+      };
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
         this.reporter.report(processedEvent);
@@ -205,12 +211,19 @@ export class TraceSDK {
     }
   }
 
-  page(url?: string, title?: string) {
+  page(url?: string, title?: string, properties?: Record<string, unknown>, referrer?: string) {
     this.ensureReady();
     if (this.isDestroyed()) return;
 
     try {
-      const event = this.createEvent('page', { url, title });
+      const event = {
+        ...this.createEvent('page', properties),
+        url,
+        title,
+        referrer:
+          referrer ??
+          (typeof document !== 'undefined' ? document.referrer || undefined : undefined),
+      };
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
         this.reporter.report(processedEvent);
@@ -260,7 +273,10 @@ export class TraceSDK {
 
     try {
       // 先发送事件，再更新状态（确保事件包含正确的 userId）
-      const event = this.createEvent('identify', { userId, traits });
+      const event = {
+        ...this.createEvent('identify', traits ? { traits } : undefined),
+        userId,
+      };
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
         this.reporter.report(processedEvent);
@@ -368,7 +384,7 @@ export class TraceSDK {
       config: this.originalConfig,
       deviceInfo: this.deviceInfo ?? {
         platform: this.platform as DeviceInfo['platform'],
-        deviceId: '',
+        deviceId: this.anonymousId || generateId(),
       },
       anonymousId: this.anonymousId,
       sessionId: this.sessionId,

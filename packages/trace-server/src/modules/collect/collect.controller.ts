@@ -5,6 +5,7 @@ import { BatchCollectDto, SingleCollectDto } from './dto/create-collect.dto';
 
 @ApiTags('collect')
 @Controller('collect')
+@UsePipes(new ValidationPipe({ transform: true, whitelist: true }))
 export class CollectController {
   constructor(private readonly collectService: CollectService) {}
 

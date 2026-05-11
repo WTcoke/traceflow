@@ -99,7 +99,7 @@ export class ReportManager {
   }
 
   private sanitizeEventForTransport(event: TraceEvent): TraceEvent {
-    const { _sent, _createdAt, _retryCount, ...safeEvent } = event;
+    const { _createdAt, _retryCount, ...safeEvent } = event;
     return safeEvent;
   }
 
