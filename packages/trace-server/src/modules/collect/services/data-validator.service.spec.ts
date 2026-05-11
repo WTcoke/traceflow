@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { DataValidatorService } from './data-validator.service';
+import { DataValidatorService } from '../services/data-validator.service';
 
 describe('DataValidatorService', () => {
   let service: DataValidatorService;

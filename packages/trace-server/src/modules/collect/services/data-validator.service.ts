@@ -5,7 +5,7 @@ import {
   buriedPointEventSchema,
   BuriedPointEventDto,
   CleanedBuriedPointData,
-} from './dto/buried-point.dto';
+} from '../dto/buried-point.dto';
 import ajvFormats from 'ajv-formats';
 
 /**

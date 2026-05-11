@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './core/prisma/prisma.module';
 import { RedisModule } from './core/redis/redis.module';
-import { CollectModule } from './modules/collect/collect.module';
+import { CollectModule } from './modules/collect/modules/collect.module';
 import { QueueModule } from './common/queue/queue.module';
 import { AiModule } from './modules/ai/ai.module';
 import { MonitorModule } from './modules/monitor/monitor.module';

@@ -1,11 +1,11 @@
 import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { Worker, Job } from 'bullmq';
-import { QUEUE_NAMES } from '../../common/queue/queue.constants';
-import { DataValidatorService } from './data-validator.service';
-import { CollectMapper } from './collect.mapper';
-import { CleanedBuriedPointData } from './dto/buried-point.dto';
-import { parseUserAgent, parseIP } from '../../common/utils';
-import { RedisService } from '../../core/redis/redis.service';
+import { QUEUE_NAMES } from '../../../common/queue/queue.constants';
+import { DataValidatorService } from '../services/data-validator.service';
+import { CollectMapper } from '../mappers/collect.mapper';
+import { CleanedBuriedPointData } from '../dto/buried-point.dto';
+import { parseUserAgent, parseIP } from '../../../common/utils';
+import { RedisService } from '../../../core/redis/redis.service';
 
 // ==================== 接口定义 ====================
 

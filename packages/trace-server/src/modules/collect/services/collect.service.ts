@@ -5,12 +5,12 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { RedisService } from '../../core/redis/redis.service';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { RedisService } from '../../../core/redis/redis.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { QUEUE_NAMES } from '../../common/queue/queue.constants';
-import { BuriedPointEventDto } from './dto/buried-point.dto';
+import { QUEUE_NAMES } from '../../../common/queue/queue.constants';
+import { BuriedPointEventDto } from '../dto/buried-point.dto';
 import { createHash, createHmac } from 'node:crypto';
 
 interface CachedAppIdInfo {

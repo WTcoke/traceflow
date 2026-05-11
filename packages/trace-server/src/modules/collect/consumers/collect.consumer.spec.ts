@@ -1,11 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollectConsumer } from './collect.consumer';
-import { DataValidatorService } from './data-validator.service';
-import { CollectMapper } from './collect.mapper';
+import { DataValidatorService } from '../services/data-validator.service';
+import { CollectMapper } from '../mappers/collect.mapper';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
-import { RedisService } from '../../core/redis/redis.service';
-import { parseUserAgent, parseIP } from '../../common/utils';
+import { RedisService } from '../../../core/redis/redis.service';
 
 jest.mock('bullmq', () => ({
   Worker: jest.fn().mockImplementation(() => ({

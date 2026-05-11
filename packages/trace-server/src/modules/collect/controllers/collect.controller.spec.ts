@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CollectController } from './collect.controller';
-import { CollectService } from './collect.service';
+import { CollectService } from '../services/collect.service';
 import { BadRequestException } from '@nestjs/common';
 
 describe('CollectController', () => {

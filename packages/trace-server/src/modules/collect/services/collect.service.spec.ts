@@ -1,11 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { CollectService } from './collect.service';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { RedisService } from '../../core/redis/redis.service';
+import { CollectService } from '../services/collect.service';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { RedisService } from '../../../core/redis/redis.service';
 import { UnauthorizedException } from '@nestjs/common';
 import { createHmac } from 'crypto';
 import { getQueueToken } from '@nestjs/bullmq';
-import { QUEUE_NAMES } from '../../common/queue/queue.constants';
+import { QUEUE_NAMES } from '../../../common/queue/queue.constants';
 
 describe('CollectService', () => {
   let service: CollectService;

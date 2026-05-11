@@ -9,11 +9,11 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import { Request } from 'express';
-import { CollectService } from './collect.service';
-import { BuriedPointDto } from './dto/buried-point.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { CollectService } from '../services/collect.service';
+import { BuriedPointDto } from '../dto/buried-point.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 
 const MAX_REQUEST_SIZE = '100kb';
 @ApiTags('collect')
