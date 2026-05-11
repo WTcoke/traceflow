@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AiMode } from '../interfaces/ai.interfaces';
+import { AiMode } from '../dto/ai.dto';
 
 export class AiAnalysisResultEntity {
   @ApiProperty({ description: '记录ID' })

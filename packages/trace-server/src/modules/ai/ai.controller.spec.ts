@@ -4,6 +4,7 @@ import { AiService } from './ai.service';
 import { PrismaService } from '../../core/prisma/prisma.service';
 import { LangChainService } from './providers/langchain.service';
 import { AiQueueProducer } from './providers/ai-queue.producer';
+import { AiCacheService } from './providers/ai-cache.service';
 
 describe('AiController', () => {
   let controller: AiController;
@@ -11,9 +12,15 @@ describe('AiController', () => {
   const mockPrismaService = {};
   const mockLangChainService = {
     queryWithSql: jest.fn(),
+    executeSqlSafely: jest.fn(),
+    generateExplanation: jest.fn(),
   };
   const mockAiQueueProducer = {
     submitAnalysis: jest.fn(),
+  };
+  const mockAiCacheService = {
+    getCachedSql: jest.fn(),
+    setCachedSql: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -24,6 +31,7 @@ describe('AiController', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: LangChainService, useValue: mockLangChainService },
         { provide: AiQueueProducer, useValue: mockAiQueueProducer },
+        { provide: AiCacheService, useValue: mockAiCacheService },
       ],
     }).compile();
 
