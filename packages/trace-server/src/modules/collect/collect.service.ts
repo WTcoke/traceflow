@@ -1,54 +1,67 @@
 import { Injectable } from '@nestjs/common';
-import { TrackService } from '../track/track.service';
-import { CollectBatchDto } from './dto/collect-batch.dto';
-import { CollectEventDto } from './dto/collect-event.dto';
-import { CollectSingleDto } from './dto/collect-single.dto';
+import { PrismaClient, TraceEventType, TracePriority } from '@prisma/client';
+import { BatchCollectDto, SingleCollectDto } from './dto/create-collect.dto';
 
 @Injectable()
 export class CollectService {
-  constructor(private readonly trackService: TrackService) {}
+  private prisma = new PrismaClient();
 
-  // 处理单条上报
-  async collectSingle(_appKey: string, dto: CollectSingleDto) {
-    await this.trackService.createEvent(this.toTrackDto(dto.data));
+  /**
+   * 单条数据上报
+   */
+  async createSingle(singleCollectDto: SingleCollectDto) {
+    const { projectId, data } = singleCollectDto;
 
-    return {
-      successCount: 1,
-      failCount: 0,
-      failData: [],
-    };
-  }
-
-  // 处理批量上报
-  async collectBatch(_appKey: string, dto: CollectBatchDto) {
-    const result = await this.trackService.createEventBatch({
-      events: dto.data.map((event) => this.toTrackDto(event)),
+    await this.prisma.traceEvent.create({
+      data: {
+        eventId: data.eventId,
+        eventType: data.eventType as TraceEventType,
+        timestamp: data.timestamp,
+        userId: data.userId,
+        anonymousId: data.anonymousId,
+        sessionId: data.sessionId,
+        deviceInfo: data.deviceInfo as any,
+        properties: data.properties,
+        priority: (data.priority || 'normal') as TracePriority,
+        createdAt: data._createdAt,
+        url: data.properties?.url,
+        title: data.properties?.title,
+        eventName: data.properties?.event,
+      },
     });
 
-    return {
-      successCount: result.count,
-      failCount: dto.data.length - result.count,
-      failData: [],
-    };
+    return { success: true, message: 'Data collected successfully' };
   }
 
-  // 格式转换（完全正确）
-  private toTrackDto(event: CollectEventDto) {
-    return {
+  /**
+   * 批量数据上报
+   */
+  async createBatch(batchCollectDto: BatchCollectDto) {
+    const { projectId, data } = batchCollectDto;
+
+    const createManyData = data.map((event) => ({
       eventId: event.eventId,
-      eventType: event.eventType,
-      eventName: event.eventName,
+      eventType: event.eventType as TraceEventType,
       timestamp: event.timestamp,
       userId: event.userId,
       anonymousId: event.anonymousId,
       sessionId: event.sessionId,
-      deviceInfo: event.deviceInfo,
-      url: event.url,
-      title: event.title,
-      referrer: event.referrer,
+      deviceInfo: event.deviceInfo as any,
       properties: event.properties,
-      priority: event.priority,
+      priority: (event.priority || 'normal') as TracePriority,
+      createdAt: event._createdAt,
+      url: event.properties?.url,
+      title: event.properties?.title,
+      eventName: event.properties?.event,
+    }));
+
+    await this.prisma.traceEvent.createMany({
+      data: createManyData,
+    });
+
+    return {
+      success: true,
+      message: `Batch data collected successfully (${createManyData.length} events)`,
     };
-    2;
   }
 }
