@@ -11,14 +11,14 @@ import {
   ParseIntPipe,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
-import { AlarmService } from './alarm.service';
-import { CreateAlarmRuleDto } from './dto/create-alarm.dto';
-import { UpdateAlarmRuleDto } from './dto/update-alarm.dto';
-import { HandleAlarmRecordDto } from './dto/handle-alarm-record.dto';
-import { AlarmRecordQueryDto } from './dto/alarm-record-query.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+import { AlarmService } from '../services/alarm.service';
+import { CreateAlarmRuleDto } from '../dto/create-alarm.dto';
+import { UpdateAlarmRuleDto } from '../dto/update-alarm.dto';
+import { HandleAlarmRecordDto } from '../dto/handle-alarm-record.dto';
+import { AlarmRecordQueryDto } from '../dto/alarm-record-query.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 
 @ApiTags('告警中心')
 @ApiBearerAuth()

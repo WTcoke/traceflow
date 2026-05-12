@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { CreateAlarmRuleDto } from './dto/create-alarm.dto';
-import { UpdateAlarmRuleDto } from './dto/update-alarm.dto';
-import { HandleAlarmRecordDto } from './dto/handle-alarm-record.dto';
-import { AlarmRecordQueryDto } from './dto/alarm-record-query.dto';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { CreateAlarmRuleDto } from '../dto/create-alarm.dto';
+import { UpdateAlarmRuleDto } from '../dto/update-alarm.dto';
+import { HandleAlarmRecordDto } from '../dto/handle-alarm-record.dto';
+import { AlarmRecordQueryDto } from '../dto/alarm-record-query.dto';
 
 @Injectable()
 export class AlarmService {
@@ -34,18 +34,12 @@ export class AlarmService {
     if (!existing) {
       throw new NotFoundException('告警规则不存在');
     }
-
-    const data: any = {};
-    if (dto.projectId !== undefined) data.projectId = BigInt(dto.projectId);
-    if (dto.ruleName !== undefined) data.ruleName = dto.ruleName;
-    if (dto.alarmType !== undefined) data.alarmType = dto.alarmType;
-    if (dto.threshold !== undefined) data.threshold = dto.threshold as any;
-    if (dto.receivers !== undefined) data.receivers = dto.receivers as any;
-    if (dto.status !== undefined) data.status = dto.status;
-
     await this.prisma.alarmRule.update({
       where: { id: BigInt(id) },
-      data,
+      data: {
+        ...dto,
+        projectId: dto.projectId !== undefined ? BigInt(dto.projectId) : undefined,
+      },
     });
 
     return { message: '更新成功' };

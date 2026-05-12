@@ -6,7 +6,7 @@ import { CollectModule } from './modules/collect/modules/collect.module';
 import { QueueModule } from './common/queue/queue.module';
 import { AiModule } from './modules/ai/ai.module';
 import { MonitorModule } from './modules/monitor/monitor.module';
-import { AlarmModule } from './modules/alarm/alarm.module';
+import { AlarmModule } from './modules/alarm/modules/alarm.module';
 import { SystemModule } from './modules/system/system.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProjectModule } from './modules/project/project.module';
