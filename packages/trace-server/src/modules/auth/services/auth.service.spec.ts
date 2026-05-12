@@ -3,9 +3,9 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { UnauthorizedException, ForbiddenException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { AuthService } from './auth.service';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { LoginDto } from './dto/login.dto';
+import { AuthService } from '../services/auth.service';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { LoginDto } from '../dto/login.dto';
 
 describe('AuthService', () => {
   let service: AuthService;

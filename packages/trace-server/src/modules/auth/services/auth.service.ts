@@ -3,8 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { createHash, randomBytes } from 'crypto';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { LoginDto } from './dto/login.dto';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { LoginDto } from '../dto/login.dto';
 
 @Injectable()
 export class AuthService {
