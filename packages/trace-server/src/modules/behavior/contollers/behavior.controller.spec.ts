@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BehaviorController } from './behavior.controller';
-import { BehaviorService } from './behavior.service';
+import { BehaviorController } from '../contollers/behavior.controller';
+import { BehaviorService } from '../services/behavior.service';
 
 describe('BehaviorController', () => {
   let controller: BehaviorController;

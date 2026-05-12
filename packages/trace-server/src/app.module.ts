@@ -10,7 +10,7 @@ import { AlarmModule } from './modules/alarm/modules/alarm.module';
 import { SystemModule } from './modules/system/system.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProjectModule } from './modules/project/project.module';
-import { BehaviorModule } from './modules/behavior/behavior.module';
+import { BehaviorModule } from './modules/behavior/modules/behavior.module';
 import { PerformanceModule } from './modules/performance/performance.module';
 import { ErrorModule } from './modules/error/error.module';
 import { StatisticsModule } from './modules/statistics/statistics.module';

@@ -1,8 +1,8 @@
 import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { RedisService } from '../../core/redis/redis.service';
-import { BehaviorPathsQueryDto } from './dto/behavior-paths-query.dto';
-import { BehaviorPathsResponseDto, BehaviorPathItemDto } from './dto/behavior-paths-response.dto';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { RedisService } from '../../../core/redis/redis.service';
+import { BehaviorPathsQueryDto } from '../dto/behavior-paths-query.dto';
+import { BehaviorPathsResponseDto, BehaviorPathItemDto } from '../dto/behavior-paths-response.dto';
 
 interface BuriedPointRecord {
   id: bigint;
