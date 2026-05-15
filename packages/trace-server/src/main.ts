@@ -32,9 +32,8 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggingInterceptor());
 
   app.enableCors({
-    origin: process.env.NODE_ENV === 'production' ? false : '*',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type,Authorization,X-Requested-With,Content-Encoding',
+    origin: process.env.NODE_ENV === 'production' ? process.env.CORS_ALLOWED_ORIGINS : '*',
+    allowedHeaders: 'Content-Type,Authorization,Content-Encoding',
     exposedHeaders: 'X-Request-Id',
   });
 
