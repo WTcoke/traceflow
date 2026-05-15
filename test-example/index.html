@@ -67,16 +67,10 @@
     <p>最小静态页面，用来验证 `trace-sdk -> trace-server` 链路。</p>
 
     <div class="form">
-      <label for="baseUrl">Server Base URL</label>
+      <label for="baseUrl">Server Base URL (SDK 会自动拼接 /collect)</label>
       <input id="baseUrl" value="http://localhost:3000/api/v1" />
 
-      <label for="projectId">Project ID</label>
-      <input id="projectId" value="proj_local_demo" />
-
-      <label for="appKey">App Key</label>
-      <input id="appKey" value="app_key_local_demo" />
-
-      <label for="appId">SDK App ID</label>
+      <label for="appId">SDK App ID (后端需预先注册)</label>
       <input id="appId" value="traceflow-demo-app" />
 
       <label for="eventName">Custom Event Name</label>
@@ -101,7 +95,7 @@
       <pre id="logPanel">[boot] ready</pre>
     </div>
 
-    <script src="/sdk/trace-sdk.iife.js"></script>
+    <script src="/sdk/trace-sdk.web.iife.js"></script>
     <script src="/app.js"></script>
   </body>
 </html>

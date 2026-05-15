@@ -4,6 +4,7 @@ import type {
   Plugin,
   DeviceInfo,
   IStorageAdapter,
+  INetworkAdapter,
   EventType,
   Platform,
   ConfigProvider,
@@ -16,11 +17,6 @@ import { PlatformAdapterFactory } from '../adapter/PlatformAdapterFactory';
 /** 生成唯一 ID */
 function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
-}
-
-/** 生成会话 ID */
-function generateSessionId(): string {
-  return `sess_${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
 }
 
 /**
@@ -41,10 +37,9 @@ export class TraceSDK {
   private originalConfig: SDKConfig;
   private configProvider: ConfigProvider;
   private reporter: ReportManager;
+  private networkAdapter: INetworkAdapter;
   private plugins: PluginManager;
   private deviceInfo: DeviceInfo | null = null;
-  private anonymousId: string = '';
-  private sessionId: string = generateSessionId();
   private userId?: string;
   private storageAdapter: IStorageAdapter;
   private platform: Platform;
@@ -84,9 +79,13 @@ export class TraceSDK {
     // 初始化网络适配器
     const networkAdapter =
       config.networkAdapter || PlatformAdapterFactory.createNetworkAdapter(this.platform, config);
+    if (!networkAdapter) {
+      throw new Error(`[TraceSDK] No network adapter for platform: ${this.platform}`);
+    }
+    this.networkAdapter = networkAdapter;
 
     // 创建带有网络适配器的配置
-    const finalConfig = networkAdapter ? { ...config, networkAdapter } : config;
+    const finalConfig = { ...config, networkAdapter, storageAdapter: this.storageAdapter };
 
     this.plugins = new PluginManager();
     this.reporter = new ReportManager(finalConfig, this.plugins);
@@ -99,33 +98,6 @@ export class TraceSDK {
     try {
       // 异步加载设备信息（内联原 ConfigManager 逻辑）
       sdk.deviceInfo = await sdk.configProvider.getDeviceInfo();
-
-      // 尝试获取匿名ID（优先级：configProvider > 存储适配器 > 生成新ID）
-      if (sdk.configProvider.getAnonymousId) {
-        try {
-          sdk.anonymousId = (await sdk.configProvider.getAnonymousId()) || '';
-        } catch {
-          // getAnonymousId 失败，继续尝试从存储获取
-          sdk.anonymousId = '';
-        }
-      }
-
-      if (!sdk.anonymousId) {
-        const storedAnonId = sdk.storageAdapter.get('anonymous_id');
-        if (storedAnonId) {
-          sdk.anonymousId = storedAnonId;
-        }
-      }
-
-      if (!sdk.anonymousId) {
-        sdk.anonymousId = generateId();
-        try {
-          sdk.storageAdapter.set('anonymous_id', sdk.anonymousId);
-        } catch (error) {
-          console.warn('[TraceSDK] Failed to persist anonymous_id to storage:', error);
-          // 存储失败不影响 SDK 运行，anonymousId 保留在内存中
-        }
-      }
 
       // 标记上报管理器就绪
       sdk.reporter.ready();
@@ -167,27 +139,47 @@ export class TraceSDK {
     return this.state === SDKState.Destroyed;
   }
 
-  private createEvent(eventType: EventType, properties?: Record<string, unknown>): TraceEvent {
-    const fallbackDeviceId = this.anonymousId || generateId();
+  private normalizePlatform(platform: Platform): Platform {
+    if (
+      platform === 'miniapp-weixin' ||
+      platform === 'miniapp-alipay' ||
+      platform === 'miniapp-baidu' ||
+      platform === 'miniapp-toutiao'
+    ) {
+      return 'miniapp';
+    }
+
+    if (platform === 'nodejs') {
+      return 'pc';
+    }
+
+    return platform;
+  }
+
+  private createEvent(eventType: EventType, data?: Record<string, unknown>): TraceEvent {
+    const fallbackDeviceId = generateId();
+    const deviceInfo = this.deviceInfo ?? {
+      platform: this.platform as DeviceInfo['platform'],
+      deviceId: fallbackDeviceId,
+    };
+    const msgId = generateId();
 
     return {
-      eventId: generateId(),
-      eventType,
-      timestamp: Date.now(),
+      msgId,
+      deviceId: deviceInfo.deviceId || fallbackDeviceId,
       userId: this.userId,
-      anonymousId: this.anonymousId,
-      sessionId: this.sessionId,
-      // init 完成前 deviceInfo 为 null，提供默认值
-      deviceInfo: this.deviceInfo ?? {
-        platform: this.platform as DeviceInfo['platform'],
-        deviceId: fallbackDeviceId,
-      },
-      properties,
+      eventTime: Date.now(),
+      eventType,
+      platform: this.normalizePlatform(deviceInfo.platform),
+      userAgent: deviceInfo.userAgent,
+      os: deviceInfo.os,
+      browser: deviceInfo.browser,
+      data: data ?? {},
       _createdAt: Date.now(),
     };
   }
 
-  track(eventName: string, properties?: Record<string, unknown>) {
+  track(eventName: string, data?: Record<string, unknown>) {
     // 输入验证
     if (typeof eventName !== 'string' || !eventName.trim()) {
       console.warn('[TraceSDK] track: eventName must be a non-empty string');
@@ -198,10 +190,10 @@ export class TraceSDK {
     if (this.isDestroyed()) return;
 
     try {
-      const event = {
-        ...this.createEvent('track', properties),
+      const event = this.createEvent('behavior', {
+        ...data,
         eventName,
-      };
+      });
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
         this.reporter.report(processedEvent);
@@ -211,19 +203,24 @@ export class TraceSDK {
     }
   }
 
-  page(url?: string, title?: string, properties?: Record<string, unknown>, referrer?: string) {
+  page(data: Record<string, unknown> = {}) {
     this.ensureReady();
     if (this.isDestroyed()) return;
 
     try {
-      const event = {
-        ...this.createEvent('page', properties),
-        url,
-        title,
+      const event = this.createEvent('behavior', {
+        ...data,
+        eventName: 'page_view',
+        pageUrl:
+          (data.pageUrl as string | undefined) ??
+          (typeof location !== 'undefined' ? location.href : undefined),
+        pageTitle:
+          (data.pageTitle as string | undefined) ??
+          (typeof document !== 'undefined' ? document.title || undefined : undefined),
         referrer:
-          referrer ??
+          (data.referrer as string | undefined) ??
           (typeof document !== 'undefined' ? document.referrer || undefined : undefined),
-      };
+      });
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
         this.reporter.report(processedEvent);
@@ -233,9 +230,9 @@ export class TraceSDK {
     }
   }
 
-  error(error: Error, context?: Record<string, unknown>) {
-    if (!(error instanceof Error)) {
-      console.warn('[TraceSDK] error: first argument must be an Error');
+  error(error: Error | string, context?: Record<string, unknown>) {
+    if (!(error instanceof Error) && typeof error !== 'string') {
+      console.warn('[TraceSDK] error: first argument must be an Error or string');
       return;
     }
 
@@ -243,14 +240,24 @@ export class TraceSDK {
     if (this.isDestroyed()) return;
 
     try {
+      const normalizedError =
+        typeof error === 'string'
+          ? { name: 'Error', message: error }
+          : {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            };
+
       const event = this.createEvent('error', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
+        eventName: 'js_error',
+        ...normalizedError,
         ...context,
       });
       // 调用插件的 onError 钩子
-      this.plugins.execute('onError', error);
+      if (error instanceof Error) {
+        this.plugins.execute('onError', error);
+      }
       // 应用插件的 onEvent 钩子处理
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
@@ -261,10 +268,9 @@ export class TraceSDK {
     }
   }
 
-  identify(userId: string, traits?: Record<string, unknown>) {
-    // 输入验证
-    if (typeof userId !== 'string' || !userId.trim()) {
-      console.warn('[TraceSDK] identify: userId must be a non-empty string');
+  performance(metricName: string, data?: Record<string, unknown>) {
+    if (typeof metricName !== 'string' || !metricName.trim()) {
+      console.warn('[TraceSDK] performance: metricName must be a non-empty string');
       return;
     }
 
@@ -272,21 +278,25 @@ export class TraceSDK {
     if (this.isDestroyed()) return;
 
     try {
-      // 先发送事件，再更新状态（确保事件包含正确的 userId）
-      const event = {
-        ...this.createEvent('identify', traits ? { traits } : undefined),
-        userId,
-      };
+      const event = this.createEvent('performance', {
+        ...data,
+        eventName: metricName,
+      });
       const processedEvent = this.plugins.executeEventHook(event);
       if (processedEvent) {
         this.reporter.report(processedEvent);
       }
-      // 事件发送成功后才更新状态
-      this.userId = userId;
     } catch (error) {
-      console.error('[TraceSDK] identify error:', error);
-      throw error; // re-throw，因为事件发送失败
+      console.error('[TraceSDK] performance error:', error);
     }
+  }
+
+  setUserId(userId?: string): void {
+    this.userId = userId;
+  }
+
+  flush(): Promise<void> {
+    return this.reporter.flush();
   }
 
   use(plugin: Plugin) {
@@ -333,24 +343,20 @@ export class TraceSDK {
   }
 
   /**
-   * 获取当前匿名 ID
-   */
-  getAnonymousId(): string {
-    return this.anonymousId;
-  }
-
-  /**
-   * 获取当前会话 ID
-   */
-  getSessionId(): string {
-    return this.sessionId;
-  }
-
-  /**
    * 获取当前用户 ID
    */
   getUserId(): string | undefined {
     return this.userId;
+  }
+
+  /** @internal 平台入口用于挂载平台专用生命周期能力 */
+  getReportManager(): ReportManager {
+    return this.reporter;
+  }
+
+  /** @internal 平台入口用于访问当前平台网络适配器 */
+  getNetworkAdapter(): INetworkAdapter {
+    return this.networkAdapter;
   }
 
   /**
@@ -371,7 +377,6 @@ export class TraceSDK {
     // 重置所有状态
     this.state = SDKState.Destroyed;
     this.deviceInfo = null;
-    this.anonymousId = '';
     this.userId = undefined;
     this.pendingPlugins = [];
   }
@@ -384,14 +389,9 @@ export class TraceSDK {
       config: this.originalConfig,
       deviceInfo: this.deviceInfo ?? {
         platform: this.platform as DeviceInfo['platform'],
-        deviceId: this.anonymousId || generateId(),
+        deviceId: generateId(),
       },
-      anonymousId: this.anonymousId,
-      sessionId: this.sessionId,
       userId: this.userId,
-      setAnonymousId: (id) => {
-        this.anonymousId = id;
-      },
       setUserId: (id) => {
         this.userId = id;
       },

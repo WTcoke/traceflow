@@ -1,0 +1,106 @@
+
+SDK 上传埋点数据接口：
+
+POST /api/v1/collect
+对应 controller 返回：
+
+return { received: dto.events.length };
+经过全局响应拦截器后，SDK 实际收到的是统一 JSON 对象。
+
+1. 成功响应
+
+{
+  "code": 200,
+  "message": "业务处理成功",
+  "data": {
+    "received": 1
+  },
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+字段说明：
+
+{
+  // 必填：HTTP 状态码
+  "code": 200,
+
+  // 必填：成功消息
+  "message": "业务处理成功",
+
+  // 必填：业务响应数据
+  "data": {
+    // 必填：本次 SDK 请求中接收到的事件数量
+    "received": 1
+  },
+
+  // 必填：后端生成的请求 ID
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+2. 未登录 / Token 无效
+
+因为 /collect 当前有：
+
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+没带 token 或 token 无效时，可能返回：
+
+{
+  "code": 401,
+  "message": "未登录或 Token 失效",
+  "data": null,
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+3. 权限不足
+
+如果登录了，但没有：
+
+collect:write
+可能返回：
+
+{
+  "code": 403,
+  "message": "权限不足",
+  "data": null,
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+4. appId 无效
+
+appId 不存在时：
+
+{
+  "code": 401,
+  "message": "Invalid appId",
+  "data": null,
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+5. 项目被禁用
+
+项目状态不是启用状态时：
+
+{
+  "code": 401,
+  "message": "Project is disabled",
+  "data": null,
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+6. 请求体太大
+
+超过 100kb 时：
+
+{
+  "code": 400,
+  "message": "Request body size exceeds 100kb",
+  "data": null,
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+7. 服务器内部错误
+
+比如数据库、Redis、队列出现未处理异常时：
+
+{
+  "code": 500,
+  "message": "服务器内部错误",
+  "data": null,
+  "requestId": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+}
+注意：成功响应里的 received 只代表后端接收了 SDK 数据并开始异步入队，不代表数据已经最终写入 MySQL。当前代码是异步执行 sendToQueue() 后立即返回。
+
+

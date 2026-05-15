@@ -1,28 +1,21 @@
 import { BaseNetworkAdapter } from '../../adapter/base/BaseNetworkAdapter';
 import type { TraceEvent, SDKConfig } from '../../core/types';
+import type { IWebNetworkAdapter } from './types';
 
 interface ServerResponse<T = unknown> {
   code: number;
   message: string;
-  data: T;
-  timestamp: number;
+  data: T | null;
+  requestId?: string;
 }
 
 /**
  * Web 端网络适配器实现
  * 统一使用 fetch POST 发送数据
  */
-export class WebNetworkAdapter extends BaseNetworkAdapter {
+export class WebNetworkAdapter extends BaseNetworkAdapter implements IWebNetworkAdapter {
   constructor(config: SDKConfig) {
     super(config);
-  }
-
-  /**
-   * 发送单个事件
-   */
-  async send(event: TraceEvent): Promise<void> {
-    const payload = this.createSinglePayload(event);
-    await this.post(payload, this.getSingleUrl());
   }
 
   /**
@@ -31,19 +24,42 @@ export class WebNetworkAdapter extends BaseNetworkAdapter {
   async sendBatch(events: TraceEvent[]): Promise<void> {
     if (events.length === 0) return;
 
-    console.log('Sending batch events:', events);
+    const payload = this.createCollectPayload(events);
+    await this.post(payload);
+  }
 
-    const payload = this.createBatchPayload(events);
-    await this.post(payload, this.getBatchUrl());
+  /**
+   * Web 页面卸载期尽力补发。只表示浏览器接受发送任务，不代表后端业务成功。
+   */
+  sendBeacon(events: TraceEvent[]): boolean {
+    if (
+      events.length === 0 ||
+      typeof navigator === 'undefined' ||
+      typeof navigator.sendBeacon !== 'function'
+    ) {
+      return false;
+    }
+
+    const payload = JSON.stringify(this.createCollectPayload(events));
+    return navigator.sendBeacon(
+      this.getCollectUrl(),
+      new Blob([payload], { type: 'application/json' }),
+    );
   }
 
   /**
    * 使用 fetch POST 发送数据
    */
-  protected async post(data: unknown, url?: string): Promise<void> {
-    const response = await fetch(url || this.config.serverUrl, {
+  protected async post(data: unknown): Promise<void> {
+    if (typeof fetch !== 'function') {
+      throw new Error('fetch is not available');
+    }
+
+    const response = await fetch(this.getCollectUrl(), {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify(data),
       keepalive: true,
     });
@@ -59,7 +75,7 @@ export class WebNetworkAdapter extends BaseNetworkAdapter {
       throw new Error(message);
     }
 
-    if (payload && payload.code !== 200) {
+    if (payload && (payload.code < 200 || payload.code >= 300)) {
       throw new Error(payload.message || `Business request failed: ${payload.code}`);
     }
   }

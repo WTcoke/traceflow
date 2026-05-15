@@ -83,8 +83,9 @@ export class Sampler {
    * 获取采样键
    */
   private getSampleKey(event: TraceEvent): string {
-    const userId = event.userId || event.anonymousId || '';
-    return `${userId}:${event.eventType}:${event.eventName || ''}`;
+    const userKey = event.userId || event.deviceId || '';
+    const eventName = typeof event.data?.eventName === 'string' ? event.data.eventName : '';
+    return `${userKey}:${event.eventType}:${eventName}`;
   }
 
   /**

@@ -3,7 +3,6 @@ import type { INetworkAdapter } from '../adapter/types';
 import { BatchReporter, type BatchReporterConfig } from './BatchReporter';
 import { Sampler } from './Sampler';
 import { RetryStrategy } from './RetryStrategy';
-import { WebNetworkAdapter } from '../platform/web/WebNetworkAdapter';
 import { PluginManager } from '../core/PluginManager';
 
 /**
@@ -26,12 +25,10 @@ export class ReportManager {
     this.pluginManager = pluginManager;
 
     // 初始化网络适配器
-    if (config.networkAdapter) {
-      this.networkAdapter = config.networkAdapter;
-    } else {
-      // 默认使用 Web 网络适配器
-      this.networkAdapter = new WebNetworkAdapter(config);
+    if (!config.networkAdapter) {
+      throw new Error('[TraceSDK] networkAdapter is required');
     }
+    this.networkAdapter = config.networkAdapter;
 
     // 初始化采样器
     this.sampler = new Sampler(config.samplingConfig);
@@ -40,6 +37,7 @@ export class ReportManager {
     const batchReporterConfig: BatchReporterConfig = {
       batchSize: config.reportConfig?.batchSize ?? 10,
       flushInterval: config.reportConfig?.flushInterval ?? 3000,
+      maxRetries: config.reportConfig?.maxRetries ?? 3,
       autoStart: true,
       usePersistentQueue: config.storageConfig?.enabled ?? false,
       persistentQueueConfig: {
@@ -48,19 +46,23 @@ export class ReportManager {
       },
     };
 
-    // 初始化批量上报器（传入 RetryStrategy 回调实现统一重试）
+    // 初始化批量上报器。普通批量事件由批量队列自身保留并重试，避免重复投递。
     this.batchReporter = new BatchReporter(this.sendBatch.bind(this), batchReporterConfig, {
-      scheduleRetry: (event) => this.retry.scheduleRetry(event),
-      cancelRetry: (eventId) => this.retry.cancelRetry(eventId),
+      onFinalFailure: (event, error) => {
+        this.config.onReportFail?.(event, error);
+      },
     });
 
-    // 初始化错误事件重试策略
-    this.retry = new RetryStrategy();
+    // 初始化立即上报事件（error / critical）的重试策略
+    this.retry = new RetryStrategy({
+      maxRetries: config.reportConfig?.maxRetries,
+      baseInterval: config.reportConfig?.retryInterval,
+    });
 
     // 设置重试到期回调，触发立即重试
-    this.retry.onRetryReady((eventId) => {
+    this.retry.onRetryReady((msgId) => {
       const pendingEvents = this.retry.getPendingRetries();
-      const event = pendingEvents.find((e) => e.eventId === eventId);
+      const event = pendingEvents.find((e) => e.msgId === msgId);
       if (event) {
         this.sendImmediatelyWithRetry(event);
       }
@@ -99,8 +101,11 @@ export class ReportManager {
   }
 
   private sanitizeEventForTransport(event: TraceEvent): TraceEvent {
-    const { _createdAt, _retryCount, ...safeEvent } = event;
-    return safeEvent;
+    const transportEvent = { ...event };
+    delete transportEvent._createdAt;
+    delete transportEvent._retryCount;
+    delete transportEvent.priority;
+    return transportEvent;
   }
 
   private sanitizeEventsForTransport(events: TraceEvent[]): TraceEvent[] {
@@ -120,8 +125,7 @@ export class ReportManager {
     }
 
     try {
-      // 关键事件直接通过适配器发送
-      await this.networkAdapter.send(this.sanitizeEventForTransport(filteredEvent));
+      await this.networkAdapter.sendBatch([this.sanitizeEventForTransport(filteredEvent)]);
       this.config.onReportSuccess?.(filteredEvent);
     } catch (error) {
       this.handleSendError(filteredEvent, error as Error);
@@ -133,24 +137,25 @@ export class ReportManager {
    */
   private async sendImmediatelyWithRetry(event: TraceEvent): Promise<void> {
     // 防止重复发送
-    if (this.inFlightRetries.has(event.eventId)) {
+    const eventKey = event.msgId;
+    if (this.inFlightRetries.has(eventKey)) {
       return;
     }
-    this.inFlightRetries.add(event.eventId);
+    this.inFlightRetries.add(eventKey);
 
     try {
       let filteredEvent: TraceEvent = event;
       if (this.config.beforeSend) {
         const result = this.config.beforeSend(event);
         if (result === false) {
-          this.retry.cancelRetry(event.eventId);
+          this.retry.cancelRetry(eventKey);
           return;
         }
         if (result !== undefined) filteredEvent = result;
       }
 
-      await this.networkAdapter.send(this.sanitizeEventForTransport(filteredEvent));
-      this.retry.cancelRetry(event.eventId);
+      await this.networkAdapter.sendBatch([this.sanitizeEventForTransport(filteredEvent)]);
+      this.retry.cancelRetry(eventKey);
       this.config.onReportSuccess?.(filteredEvent);
     } catch (error) {
       // 失败时不调用 handleSendError，避免重复回调
@@ -160,7 +165,7 @@ export class ReportManager {
         this.config.onReportFail?.(event, error as Error);
       }
     } finally {
-      this.inFlightRetries.delete(event.eventId);
+      this.inFlightRetries.delete(eventKey);
     }
   }
 
@@ -185,21 +190,12 @@ export class ReportManager {
 
     if (finalEvents.length === 0) return;
 
-    try {
-      await this.networkAdapter.sendBatch(this.sanitizeEventsForTransport(finalEvents));
+    await this.networkAdapter.sendBatch(this.sanitizeEventsForTransport(finalEvents));
 
-      // 上报成功回调
-      finalEvents.forEach((e) => {
-        this.config.onReportSuccess?.(e);
-      });
-    } catch (error) {
-      // 上报失败回调
-      finalEvents.forEach((e) => {
-        this.config.onReportFail?.(e, error as Error);
-      });
-      // 重新抛出错误，让 BatchReporter 处理重试
-      throw error;
-    }
+    // 上报成功回调
+    finalEvents.forEach((e) => {
+      this.config.onReportSuccess?.(e);
+    });
   }
 
   /**
@@ -219,6 +215,18 @@ export class ReportManager {
    */
   async flush(): Promise<void> {
     await this.batchReporter.flush();
+  }
+
+  peekPending(count?: number): TraceEvent[] {
+    return this.batchReporter.peek(count);
+  }
+
+  peekPendingForTransport(count?: number): TraceEvent[] {
+    return this.sanitizeEventsForTransport(this.peekPending(count));
+  }
+
+  removePending(count: number): TraceEvent[] {
+    return this.batchReporter.remove(count);
   }
 
   /**

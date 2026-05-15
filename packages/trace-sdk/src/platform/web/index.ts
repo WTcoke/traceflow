@@ -10,3 +10,5 @@ export { WebStorageAdapter, localStorageAdapter, sessionStorageAdapter } from '.
 
 // 配置提供者
 export { WebConfigProvider } from './WebConfigProvider';
+export { WebLifecycleReporter } from './WebLifecycleReporter';
+export type { IWebNetworkAdapter, WebOptions } from './types';

@@ -30,17 +30,19 @@ export class PlatformAdapterFactory {
    * 创建网络适配器
    */
   static createNetworkAdapter(platform: Platform, config: SDKConfig): INetworkAdapter | undefined {
+    const serverUrl = config.serverUrl || '';
+
     switch (platform) {
       case 'miniapp-weixin':
-        return new WeixinNetworkAdapter(config.serverUrl);
+        return new WeixinNetworkAdapter(serverUrl);
       case 'miniapp-alipay':
-        return new AlipayNetworkAdapter(config.serverUrl);
+        return new AlipayNetworkAdapter(serverUrl);
       case 'miniapp-baidu':
-        return new BaiduNetworkAdapter(config.serverUrl);
+        return new BaiduNetworkAdapter(serverUrl);
       case 'miniapp-toutiao':
-        return new ToutiaoNetworkAdapter(config.serverUrl);
+        return new ToutiaoNetworkAdapter(serverUrl);
       case 'nodejs':
-        return new NodeNetworkAdapter(config.serverUrl);
+        return new NodeNetworkAdapter(serverUrl);
       case 'web':
         return new WebNetworkAdapter(config);
       default:
