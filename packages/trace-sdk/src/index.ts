@@ -80,10 +80,7 @@ export {
 // ============================================================
 // 插件模块导出
 // ============================================================
-export { WebErrorPlugin } from './plugins/web/ErrorPlugin';
-export { WebPageViewPlugin } from './plugins/web/PageViewPlugin';
-export { WebClickPlugin } from './plugins/web/ClickPlugin';
-export { WebPerformancePlugin } from './plugins/web/PerformancePlugin';
+export { WebTestClickPlugin } from './plugins/web/WebTestClickPlugin';
 
 // ============================================================
 // 上报模块导出

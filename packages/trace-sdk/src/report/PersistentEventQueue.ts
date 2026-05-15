@@ -23,8 +23,6 @@ export interface PersistentQueueConfig extends QueueConfig {
   storageKeyPrefix?: string;
   /** 是否在初始化时从存储加载事件（默认 true） */
   loadOnInit?: boolean;
-  /** 是否自动保存事件到存储（默认 true） */
-  autoSave?: boolean;
   /** 保存间隔（毫秒，默认 1000） */
   saveInterval?: number;
 }
@@ -36,7 +34,7 @@ export interface PersistentQueueConfig extends QueueConfig {
 export class PersistentEventQueue extends EventQueue {
   private storage: PersistentStorage;
   private saveTimer: TimerId | null = null;
-  private autoSaveTimer: TimerId | null = null;
+  private periodicSaveTimer: TimerId | null = null;
   private pendingSave: boolean = false;
   private storageKeyPrefix: string;
   private persistentConfig: {
@@ -44,7 +42,6 @@ export class PersistentEventQueue extends EventQueue {
     persistentConfig?: Omit<PersistentStorageConfig, 'adapter'>;
     storageKeyPrefix: string;
     loadOnInit: boolean;
-    autoSave: boolean;
     saveInterval: number;
   };
 
@@ -70,19 +67,23 @@ export class PersistentEventQueue extends EventQueue {
       persistentConfig: config.persistentConfig || {},
       storageKeyPrefix: config.storageKeyPrefix ?? 'queue_',
       loadOnInit: config.loadOnInit ?? true,
-      autoSave: config.autoSave ?? true,
       saveInterval: config.saveInterval ?? 1000,
     };
+
+    this.onOverflow((events) => {
+      for (const event of events) {
+        this.storage.remove(this.getEventStorageKey(event.msgId));
+      }
+      this.saveMetadata();
+    });
 
     // 初始化时从存储加载事件
     if (this.persistentConfig.loadOnInit) {
       this.loadFromStorage();
     }
 
-    // 启动自动保存定时器
-    if (this.persistentConfig.autoSave) {
-      this.startAutoSave();
-    }
+    // 启动周期保存定时器
+    this.startPeriodicSave();
   }
 
   /**
@@ -91,7 +92,7 @@ export class PersistentEventQueue extends EventQueue {
   push(event: TraceEvent): boolean {
     const result = super.push(event);
 
-    if (result && this.persistentConfig.autoSave) {
+    if (result) {
       this.scheduleSave();
     }
 
@@ -104,7 +105,7 @@ export class PersistentEventQueue extends EventQueue {
   pushBatch(events: TraceEvent[]): void {
     super.pushBatch(events);
 
-    if (this.persistentConfig.autoSave && events.length > 0) {
+    if (events.length > 0) {
       this.scheduleSave();
     }
   }
@@ -115,8 +116,11 @@ export class PersistentEventQueue extends EventQueue {
   pop(count?: number): TraceEvent[] {
     const events = super.pop(count);
 
-    if (events.length > 0 && this.persistentConfig.autoSave) {
-      this.scheduleSave();
+    if (events.length > 0) {
+      for (const event of events) {
+        this.storage.remove(this.getEventStorageKey(event.msgId));
+      }
+      this.saveMetadata();
     }
 
     return events;
@@ -137,12 +141,12 @@ export class PersistentEventQueue extends EventQueue {
   /**
    * 移除特定事件（并从存储中删除）
    */
-  remove(eventId: string): boolean {
-    const result = super.remove(eventId);
+  remove(msgId: string): boolean {
+    const result = super.remove(msgId);
 
-    if (result && this.persistentConfig.autoSave) {
+    if (result) {
       // 从存储中删除该事件
-      this.storage.remove(this.getEventStorageKey(eventId));
+      this.storage.remove(this.getEventStorageKey(msgId));
       this.saveMetadata();
     }
 
@@ -150,15 +154,28 @@ export class PersistentEventQueue extends EventQueue {
   }
 
   /**
+   * 更新特定事件（并持久化）
+   */
+  update(msgId: string, updater: (event: TraceEvent) => TraceEvent): TraceEvent | undefined {
+    const updated = super.update(msgId, updater);
+
+    if (updated) {
+      this.scheduleSave();
+    }
+
+    return updated;
+  }
+
+  /**
    * 销毁队列，释放资源
    */
   destroy(): void {
-    this.stopAutoSave();
-
     // 确保保存未保存的更改
     if (this.pendingSave) {
       this.saveToStorage();
     }
+
+    this.stopPeriodicSave();
 
     // 清空内存队列但保留存储
     super.clear();
@@ -188,9 +205,9 @@ export class PersistentEventQueue extends EventQueue {
   /**
    * 获取队列中所有事件的 ID
    */
-  getEventIds(): string[] {
+  getMsgIds(): string[] {
     const queue = this.getQueue();
-    return queue.map((e) => e.eventId);
+    return queue.map((e) => e.msgId);
   }
 
   private createDefaultAdapter(): IStorageAdapter {
@@ -198,8 +215,8 @@ export class PersistentEventQueue extends EventQueue {
     return new WebStorageAdapter('local');
   }
 
-  private getEventStorageKey(eventId: string): string {
-    return `${this.storageKeyPrefix}event_${eventId}`;
+  private getEventStorageKey(msgId: string): string {
+    return `${this.storageKeyPrefix}event_${msgId}`;
   }
 
   private getMetadataKey(): string {
@@ -212,11 +229,11 @@ export class PersistentEventQueue extends EventQueue {
       const metadata = this.storage.get(this.getMetadataKey());
       if (!metadata) return;
 
-      const eventIds = JSON.parse(metadata) as string[];
+      const msgIds = JSON.parse(metadata) as string[];
 
       // 按顺序加载事件
-      for (const eventId of eventIds) {
-        const eventData = this.storage.get(this.getEventStorageKey(eventId));
+      for (const msgId of msgIds) {
+        const eventData = this.storage.get(this.getEventStorageKey(msgId));
         if (eventData) {
           try {
             const event = JSON.parse(eventData) as TraceEvent;
@@ -224,7 +241,7 @@ export class PersistentEventQueue extends EventQueue {
             const maxAge = 30 * 24 * 60 * 60 * 1000; // 30 天
             if (event._createdAt && Date.now() - event._createdAt > maxAge) {
               // 过期事件，删除
-              this.storage.remove(this.getEventStorageKey(eventId));
+              this.storage.remove(this.getEventStorageKey(msgId));
               continue;
             }
 
@@ -232,7 +249,7 @@ export class PersistentEventQueue extends EventQueue {
             super.push(event);
           } catch {
             // 解析失败，删除损坏的数据
-            this.storage.remove(this.getEventStorageKey(eventId));
+            this.storage.remove(this.getEventStorageKey(msgId));
           }
         }
       }
@@ -246,18 +263,18 @@ export class PersistentEventQueue extends EventQueue {
 
   private saveToStorage(): void {
     try {
-      const eventIds: string[] = [];
+      const msgIds: string[] = [];
       const queue = this.getQueue();
 
       // 保存每个事件
       for (const event of queue) {
-        const eventKey = this.getEventStorageKey(event.eventId);
+        const eventKey = this.getEventStorageKey(event.msgId);
         this.storage.set(eventKey, JSON.stringify(event));
-        eventIds.push(event.eventId);
+        msgIds.push(event.msgId);
       }
 
       // 保存元数据（事件 ID 列表）
-      this.saveMetadata(eventIds);
+      this.saveMetadata(msgIds);
 
       this.pendingSave = false;
     } catch (error) {
@@ -265,19 +282,19 @@ export class PersistentEventQueue extends EventQueue {
     }
   }
 
-  private saveMetadata(eventIds?: string[]): void {
-    if (!eventIds) {
+  private saveMetadata(msgIds?: string[]): void {
+    if (!msgIds) {
       // 从当前队列生成
       const queue = this.getQueue();
-      eventIds = queue.map((e) => e.eventId);
+      msgIds = queue.map((e) => e.msgId);
     }
 
-    this.storage.set(this.getMetadataKey(), JSON.stringify(eventIds));
+    this.storage.set(this.getMetadataKey(), JSON.stringify(msgIds));
   }
 
   private clearStorage(): void {
-    // 清理所有相关键
     const keys = this.storage.keys();
+
     for (const key of keys) {
       if (key.startsWith(this.storageKeyPrefix)) {
         this.storage.remove(key);
@@ -286,8 +303,6 @@ export class PersistentEventQueue extends EventQueue {
   }
 
   private scheduleSave(): void {
-    if (!this.persistentConfig.autoSave) return;
-
     this.pendingSave = true;
 
     // 如果已经有 setTimeout 定时器，不重复设置
@@ -301,12 +316,12 @@ export class PersistentEventQueue extends EventQueue {
     }, this.persistentConfig.saveInterval);
   }
 
-  private startAutoSave(): void {
+  private startPeriodicSave(): void {
     // 如果已经有任何定时器，不重复设置
-    if (this.autoSaveTimer !== null) return;
+    if (this.periodicSaveTimer !== null) return;
 
     // 定期保存，即使没有新事件（防止数据丢失）
-    this.autoSaveTimer = crossSetInterval!(
+    this.periodicSaveTimer = crossSetInterval!(
       () => {
         if (this.pendingSave) {
           this.saveToStorage();
@@ -316,16 +331,16 @@ export class PersistentEventQueue extends EventQueue {
     ); // 至少 5 秒
   }
 
-  private stopAutoSave(): void {
+  private stopPeriodicSave(): void {
     // 清理 scheduleSave 的 setTimeout
     if (this.saveTimer !== null) {
       crossClearTimeout!(this.saveTimer);
       this.saveTimer = null;
     }
-    // 清理 startAutoSave 的 setInterval
-    if (this.autoSaveTimer !== null) {
-      crossClearInterval!(this.autoSaveTimer);
-      this.autoSaveTimer = null;
+    // 清理周期保存定时器
+    if (this.periodicSaveTimer !== null) {
+      crossClearInterval!(this.periodicSaveTimer);
+      this.periodicSaveTimer = null;
     }
   }
 }
@@ -339,7 +354,6 @@ export function createDefaultPersistentEventQueue(): PersistentEventQueue {
     batchSize: 10,
     enablePriority: true,
     loadOnInit: true,
-    autoSave: true,
     saveInterval: 1000,
   });
 }

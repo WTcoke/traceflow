@@ -122,13 +122,33 @@ export class EventQueue {
   /**
    * 移除特定事件
    */
-  remove(eventId: string): boolean {
-    const index = this.queue.findIndex((e) => e.eventId === eventId);
+  remove(msgId: string): boolean {
+    const index = this.queue.findIndex((e) => e.msgId === msgId);
     if (index !== -1) {
       this.queue.splice(index, 1);
       return true;
     }
     return false;
+  }
+
+  /**
+   * 更新特定事件。
+   * 仅用于更新不影响排序的字段；如果修改 priority，需要重新插入以保持优先级顺序。
+   */
+  update(msgId: string, updater: (event: TraceEvent) => TraceEvent): TraceEvent | undefined {
+    const index = this.queue.findIndex((e) => e.msgId === msgId);
+    if (index === -1) return undefined;
+
+    const updated = updater(this.queue[index]);
+    this.queue[index] = updated;
+    return updated;
+  }
+
+  /**
+   * 销毁队列
+   */
+  destroy(): void {
+    this.clear();
   }
 
   /**

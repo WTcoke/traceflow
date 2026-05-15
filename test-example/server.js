@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -34,7 +36,7 @@ function sendFile(res, filePath) {
 const server = http.createServer((req, res) => {
   const requestPath = req.url === '/' ? '/index.html' : req.url;
 
-  if (requestPath === '/sdk/trace-sdk.iife.js') {
+  if (requestPath === '/sdk/trace-sdk.web.iife.js') {
     return sendFile(res, sdkBundlePath);
   }
 

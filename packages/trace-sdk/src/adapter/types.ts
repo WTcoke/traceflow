@@ -12,12 +12,8 @@ import type { DeviceInfo, TraceEvent } from '../core/types';
 
 /** 网络适配器接口 */
 export interface INetworkAdapter {
-  /** 发送单个事件 */
-  send(event: TraceEvent): Promise<void>;
   /** 批量发送事件 */
   sendBatch(events: TraceEvent[]): Promise<void>;
-  /** 设置请求头 */
-  setHeader(key: string, value: string): void;
 }
 
 // ============================================================
@@ -50,6 +46,4 @@ export interface ConfigProvider {
   getDeviceInfo(): Promise<DeviceInfo>;
   /** 获取用户 ID (可选) */
   getUserId?(): Promise<string | undefined>;
-  /** 获取匿名 ID (可选) */
-  getAnonymousId?(): Promise<string | undefined>;
 }

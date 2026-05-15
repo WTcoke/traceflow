@@ -1,7 +1,6 @@
 import type { TraceEvent } from '../core/types';
 import { EventQueue } from './EventQueue';
 import { PersistentEventQueue, type PersistentQueueConfig } from './PersistentEventQueue';
-import { RetryStrategy } from './RetryStrategy';
 import { crossSetInterval, crossClearInterval, type TimerId } from '../utils/timer';
 
 /**
@@ -12,6 +11,8 @@ export interface BatchReporterConfig {
   batchSize?: number;
   /** 上报间隔 (ms) */
   flushInterval?: number;
+  /** 单个事件最大失败重试次数（默认 3） */
+  maxRetries?: number;
   /** 是否自动启动 */
   autoStart?: boolean;
   /** 是否使用持久化队列（默认 false） */
@@ -30,22 +31,19 @@ export class BatchReporter {
   private flushTimer: TimerId | null = null;
   private isFlushing: boolean = false;
   private sendFn: (events: TraceEvent[]) => Promise<void>;
-  // 重试回调，由 ReportManager 提供
-  private scheduleRetryFn: (event: TraceEvent) => boolean;
-  // 取消重试回调，由 ReportManager 提供
-  private cancelRetryFn: (eventId: string) => void;
+  private onFinalFailure?: (event: TraceEvent, error: Error) => void;
 
   constructor(
     sendFn: (events: TraceEvent[]) => Promise<void>,
     config: BatchReporterConfig = {},
-    retryStrategy?: {
-      scheduleRetry: (event: TraceEvent) => boolean;
-      cancelRetry: (eventId: string) => void;
+    callbacks?: {
+      onFinalFailure?: (event: TraceEvent, error: Error) => void;
     },
   ) {
     this.config = {
       batchSize: config.batchSize ?? 10,
       flushInterval: config.flushInterval ?? 3000,
+      maxRetries: config.maxRetries ?? 3,
       autoStart: config.autoStart ?? true,
       usePersistentQueue: config.usePersistentQueue ?? false,
       persistentQueueConfig: config.persistentQueueConfig ?? {},
@@ -60,18 +58,8 @@ export class BatchReporter {
       this.queue = new EventQueue({ batchSize: this.config.batchSize });
     }
 
-    // 使用 ReportManager 提供的重试策略
-    if (retryStrategy) {
-      this.scheduleRetryFn = retryStrategy.scheduleRetry;
-      this.cancelRetryFn = retryStrategy.cancelRetry;
-    } else {
-      // 兜底：使用独立的 RetryStrategy（向后兼容）
-      const fallbackRetry = new RetryStrategy();
-      this.scheduleRetryFn = (event) => fallbackRetry.scheduleRetry(event);
-      this.cancelRetryFn = (eventId) => fallbackRetry.cancelRetry(eventId);
-    }
-
     this.sendFn = sendFn;
+    this.onFinalFailure = callbacks?.onFinalFailure;
 
     if (this.config.autoStart) {
       this.start();
@@ -102,6 +90,14 @@ export class BatchReporter {
     }
   }
 
+  peek(count: number = this.config.batchSize): TraceEvent[] {
+    return this.queue.peek(count);
+  }
+
+  remove(count: number): TraceEvent[] {
+    return this.queue.pop(count);
+  }
+
   /**
    * 触发上报
    */
@@ -111,30 +107,35 @@ export class BatchReporter {
     }
 
     this.isFlushing = true;
+    const eventsToSend = this.queue.peek(this.config.batchSize);
 
     try {
       // 使用 peek() 而非 getBatch()，避免事件被提前移除
-      const eventsToSend = this.queue.peek(this.config.batchSize);
-
       if (eventsToSend.length === 0) {
-        this.isFlushing = false;
         return;
       }
 
       await this.sendFn(eventsToSend);
 
       // 发送成功：从队列移除已发送的事件
-      this.queue.pop(this.config.batchSize);
-      eventsToSend.forEach((e) => this.cancelRetryFn(e.eventId));
+      for (const event of eventsToSend) {
+        this.queue.remove(event.msgId);
+      }
     } catch (error) {
       // 发送失败：eventsToSend 仍在队列中（因为只 peek 没 pop）
-      // 使用统一的 ReportManager 重试策略
-      const eventsToRetry = this.queue.peek(this.config.batchSize);
+      // 普通批量事件只保留在批量队列中，避免同时进入独立重试队列导致重复上报。
+      for (const event of eventsToSend) {
+        const updated = this.queue.update(event.msgId, (current) => ({
+          ...current,
+          _retryCount: (current._retryCount ?? 0) + 1,
+        }));
 
-      for (const event of eventsToRetry) {
-        if (!this.scheduleRetryFn(event)) {
-          // 达到最大重试次数，从队列移除
-          this.queue.remove(event.eventId);
+        if (!updated) continue;
+
+        if ((updated._retryCount ?? 0) > this.config.maxRetries) {
+          // 达到最大重试次数，从队列移除，并通知最终失败
+          this.queue.remove(updated.msgId);
+          this.onFinalFailure?.(updated, error as Error);
         }
       }
     } finally {
@@ -168,7 +169,7 @@ export class BatchReporter {
    */
   destroy(): void {
     this.stop();
-    this.queue.clear();
+    this.queue.destroy();
   }
 
   /**

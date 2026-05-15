@@ -6,11 +6,11 @@ export default defineConfig({
     lib: {
       entry: resolve(__dirname, 'entry-web.ts'),
       name: 'TraceSDK',
-      formats: ['iife', 'es'],
+      formats: ['iife', 'es', 'cjs'],
       fileName: (format: string) => `trace-sdk.web.${format}.js`,
     },
     sourcemap: true,
-    minify: 'terser',
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         name: 'TraceSDK',

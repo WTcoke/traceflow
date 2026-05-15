@@ -13,8 +13,8 @@ export type { INetworkAdapter, IStorageAdapter, ConfigProvider } from '../adapte
 // 事件类型
 // ============================================================
 
-/** 事件类型枚举 */
-export type EventType = 'track' | 'page' | 'error' | 'identify' | 'custom';
+/** 后端采集事件类型 */
+export type EventType = 'behavior' | 'performance' | 'error';
 
 /** 事件优先级 */
 export type EventPriority = 'critical' | 'normal' | 'low';
@@ -22,11 +22,17 @@ export type EventPriority = 'critical' | 'normal' | 'low';
 /** 平台类型 */
 export type Platform =
   | 'web'
+  | 'ios'
+  | 'android'
+  | 'miniapp'
+  | 'pc'
+  | 'h5'
   | 'miniapp-weixin'
   | 'miniapp-alipay'
   | 'miniapp-baidu'
   | 'miniapp-toutiao'
-  | 'nodejs';
+  | 'nodejs'
+  | string;
 
 // ============================================================
 // 设备信息
@@ -40,32 +46,10 @@ export interface DeviceInfo {
   platform: Platform;
   /** User Agent */
   userAgent?: string;
-  /** 屏幕宽度 */
-  screenWidth?: number;
-  /** 屏幕高度 */
-  screenHeight?: number;
   /** 操作系统 */
   os?: string;
-  /** 操作系统版本 */
-  osVersion?: string;
   /** 浏览器名称 */
   browser?: string;
-  /** 浏览器版本 */
-  browserVersion?: string;
-  /** 语言 */
-  language?: string;
-  /** 时区 */
-  timezone?: string;
-  /** 网络类型 */
-  networkType?: string;
-  /** 应用版本 */
-  appVersion?: string;
-  /** SDK 版本 */
-  sdkVersion?: string;
-  /** 渠道来源 */
-  channel?: string;
-  /** 额外属性 */
-  [key: string]: unknown;
 }
 
 // ============================================================
@@ -74,30 +58,34 @@ export interface DeviceInfo {
 
 /** 埋点事件结构 */
 export interface TraceEvent {
-  /** 事件唯一 ID */
-  eventId: string;
+  /** 消息 ID，用于后端去重 */
+  msgId: string;
+  /** 设备 ID */
+  deviceId: string;
+  /** 用户 ID */
+  userId?: string;
+  /** 事件发生时间戳 (毫秒) */
+  eventTime: number;
   /** 事件类型 */
   eventType: EventType;
-  /** 事件名称 (track 事件时使用) */
-  eventName?: string;
-  /** 事件发生时间戳 (毫秒) */
-  timestamp: number;
-  /** 用户 ID (登录用户) */
-  userId?: string;
-  /** 匿名 ID (设备唯一标识) */
-  anonymousId: string;
-  /** 会话 ID */
-  sessionId: string;
-  /** 设备信息 */
-  deviceInfo: DeviceInfo;
-  /** 当前页面 URL */
-  url?: string;
-  /** 当前页面标题 */
-  title?: string;
-  /** 来源页面 */
-  referrer?: string;
-  /** 事件属性 */
-  properties?: Record<string, unknown>;
+  /** 平台 */
+  platform: Platform;
+  /** User Agent */
+  userAgent?: string;
+  /** IP 地址 */
+  ip?: string;
+  /** 操作系统 */
+  os?: string;
+  /** 浏览器 */
+  browser?: string;
+  /** 国家 */
+  country?: string;
+  /** 省份 */
+  province?: string;
+  /** 城市 */
+  city?: string;
+  /** 业务数据 */
+  data?: Record<string, unknown>;
   /** 事件优先级 */
   priority?: EventPriority;
   /** 重试次数 */
@@ -118,14 +106,8 @@ export interface PluginContext {
   config: SDKConfig;
   /** 设备信息 */
   deviceInfo: DeviceInfo;
-  /** 匿名 ID */
-  anonymousId: string;
-  /** 会话 ID */
-  sessionId: string;
   /** 用户 ID */
   userId?: string;
-  /** 更新匿名 ID */
-  setAnonymousId: (id: string) => void;
   /** 更新用户 ID */
   setUserId: (id: string | undefined) => void;
   /** 上报事件（插件自动采集事件通过此方法进入 SDK 上报管道） */
@@ -190,7 +172,7 @@ export interface SamplingConfig {
 
 /** 存储配置 */
 export interface StorageConfig {
-  /** 是否启用本地存储 (默认 true) */
+  /** 是否启用持久化事件队列 (默认 false) */
   enabled?: boolean;
   /** 本地存储 Key 前缀 */
   prefix?: string;
@@ -204,14 +186,10 @@ export interface StorageConfig {
 export interface SDKConfig {
   /** 应用 ID (必填) */
   appId: string;
-  /** 上报地址 (必填) */
-  serverUrl: string;
+  /** 上报地址，配置 baseUrl 时可不传 */
+  serverUrl?: string;
   /** REST API 基础地址，例如 https://host/api/v1 */
   baseUrl?: string;
-  /** 项目 ID */
-  projectId?: string;
-  /** SDK 上报鉴权 key */
-  appKey?: string;
   /** 平台类型（可选，默认自动检测） */
   platform?: Platform;
   /** 调试模式 */
@@ -240,12 +218,6 @@ export interface SDKConfig {
 }
 
 export interface BatchCollectPayload {
-  projectId: string;
-  requestId: string;
-  data: TraceEvent[];
-}
-
-export interface SingleCollectPayload {
-  projectId: string;
-  data: TraceEvent;
+  appId: string;
+  events: TraceEvent[];
 }
