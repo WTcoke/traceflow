@@ -5,7 +5,6 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../core/prisma/prisma.service';
 import { AI_QUEUE_NAMES, AiAnalysisJobData } from '../constants/ai-queue.constants';
 import { LangChainService } from './langchain.service';
-import { AiCacheService } from './ai-cache.service';
 import { AiAnalysisResultDto } from '../dto/ai.dto';
 
 @Injectable()
@@ -16,7 +15,6 @@ export class AiQueueConsumer extends WorkerHost {
   constructor(
     private prismaService: PrismaService,
     private langChainService: LangChainService,
-    private aiCacheService: AiCacheService,
   ) {
     super();
   }
@@ -34,9 +32,6 @@ export class AiQueueConsumer extends WorkerHost {
       });
 
       await this.saveAnalysisResult(result);
-
-      await this.aiCacheService.setCachedResult(taskId, result, 3600);
-
       this.logger.log(`AI analysis task completed: ${taskId}`);
       return result;
     } catch (error) {

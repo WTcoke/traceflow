@@ -1,16 +1,16 @@
 import { Controller, Post, Get, Body, Query, BadRequestException, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
-import { AiService } from './ai.service';
+import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
+import { AiService } from '../services/ai.service';
 import {
   AiQueryDto,
   AiAnalyzeDto,
   AiQueryResponseDto,
   AiAnalyzeResponseDto,
   AiResultResponseDto,
-} from './dto/ai.dto';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { PermissionsGuard } from '../../common/guards/permissions.guard';
-import { Permissions } from '../../common/decorators/permissions.decorator';
+} from '../dto/ai.dto';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../../../common/guards/permissions.guard';
+import { Permissions } from '../../../common/decorators/permissions.decorator';
 
 @ApiTags('AI 智能分析')
 @Controller('ai')
@@ -30,6 +30,7 @@ export class AiController {
   }
 
   @Post('analyze')
+  @ApiBearerAuth()
   @ApiOperation({ summary: '提交 AI 分析任务' })
   @Permissions('ai.analyze')
   async analyze(@Body() dto: AiAnalyzeDto): Promise<AiAnalyzeResponseDto> {

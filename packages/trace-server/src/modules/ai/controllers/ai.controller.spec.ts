@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AiController } from './ai.controller';
-import { AiService } from './ai.service';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { LangChainService } from './providers/langchain.service';
-import { AiQueueProducer } from './providers/ai-queue.producer';
-import { AiCacheService } from './providers/ai-cache.service';
+import { AiController } from '../controllers/ai.controller';
+import { AiService } from '../services/ai.service';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { LangChainService } from '../providers/langchain.service';
+import { AiQueueProducer } from '../providers/ai-queue.producer';
+import { AiCacheService } from '../providers/ai-cache.service';
 
 describe('AiController', () => {
   let controller: AiController;

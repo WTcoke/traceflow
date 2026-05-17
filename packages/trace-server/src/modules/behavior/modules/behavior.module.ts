@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../../../core/prisma/prisma.module';
 import { RedisModule } from '../../../core/redis/redis.module';
-import { BehaviorService } from './behavior.service';
+import { BehaviorService } from '../services/behavior.service';
 import { BehaviorController } from '../contollers/behavior.controller';
 
 @Module({

@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../core/prisma/prisma.service';
-import { LangChainService } from './providers/langchain.service';
-import { AiQueueProducer } from './providers/ai-queue.producer';
-import { AiCacheService } from './providers/ai-cache.service';
+import { PrismaService } from '../../../core/prisma/prisma.service';
+import { LangChainService } from '../providers/langchain.service';
+import { AiQueueProducer } from '../providers/ai-queue.producer';
+import { AiCacheService } from '../providers/ai-cache.service';
 import {
   AiQueryRequestDto,
   AiQueryResponseDto,
@@ -10,7 +10,7 @@ import {
   AiAnalyzeResponseDto,
   AiResultsQueryRequestDto,
   AiResultsResponseDto,
-} from './dto/ai.dto';
+} from '../dto/ai.dto';
 
 @Injectable()
 export class AiService {

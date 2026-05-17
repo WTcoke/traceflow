@@ -227,10 +227,6 @@ SQL: {sql}
     return obj;
   }
 
-  async query(request: AiQueryRequestDto): Promise<AiQueryResponseDto> {
-    return this.queryWithSql(request);
-  }
-
   async generateExplanation(
     sql: string,
     result: Array<Record<string, any>>,
