@@ -10,8 +10,35 @@ export {
   sessionStorageAdapter,
   WebConfigProvider,
 } from './src/platform/web';
-export { WebErrorPlugin } from './src/plugins/web/ErrorPlugin';
-export { WebPageViewPlugin } from './src/plugins/web/PageViewPlugin';
-export { WebClickPlugin } from './src/plugins/web/ClickPlugin';
-export { WebPerformancePlugin } from './src/plugins/web/PerformancePlugin';
+export { WebTestClickPlugin } from './src/plugins/web/WebTestClickPlugin';
 export { BasePlugin } from './src/core/BasePlugin';
+import { TraceSDK } from './src/core/SDK';
+import type { SDKConfig } from './src/core/types';
+import { WebLifecycleReporter } from './src/platform/web/WebLifecycleReporter';
+import { WebNetworkAdapter } from './src/platform/web/WebNetworkAdapter';
+import type { WebOptions } from './src/platform/web/types';
+
+export interface WebSDKConfig extends SDKConfig {
+  web?: WebOptions;
+}
+
+export async function initWeb(config: WebSDKConfig): Promise<TraceSDK> {
+  const sdk = await TraceSDK.init(config);
+
+  if (config.web?.useBeaconOnUnload === true) {
+    const reporter = sdk.getReportManager();
+    const networkAdapter = sdk.getNetworkAdapter();
+
+    if (networkAdapter instanceof WebNetworkAdapter) {
+      const lifecycleReporter = new WebLifecycleReporter(reporter, networkAdapter, config.web);
+      lifecycleReporter.start();
+      const destroy = sdk.destroy.bind(sdk);
+      sdk.destroy = () => {
+        lifecycleReporter.stop();
+        destroy();
+      };
+    }
+  }
+
+  return sdk;
+}

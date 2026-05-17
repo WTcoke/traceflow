@@ -33,7 +33,7 @@ export class RetryStrategy {
   private retryQueue: Map<string, RetryState> = new Map();
   private timers: Map<string, TimerId> = new Map();
   // 重试到期回调，由 ReportManager 提供
-  private onRetryReadyCallback?: (eventId: string) => void;
+  private onRetryReadyCallback?: (msgId: string) => void;
 
   constructor(config: RetryConfig = {}) {
     this.config = {
@@ -47,7 +47,7 @@ export class RetryStrategy {
   /**
    * 设置重试到期回调
    */
-  onRetryReady(callback: (eventId: string) => void): void {
+  onRetryReady(callback: (msgId: string) => void): void {
     this.onRetryReadyCallback = callback;
   }
 
@@ -68,8 +68,8 @@ export class RetryStrategy {
       nextRetryTime,
     };
 
-    this.retryQueue.set(event.eventId, state);
-    this.scheduleTimer(event.eventId, nextRetryTime);
+    this.retryQueue.set(event.msgId, state);
+    this.scheduleTimer(event.msgId, nextRetryTime);
 
     return true;
   }
@@ -77,13 +77,13 @@ export class RetryStrategy {
   /**
    * 取消重试
    */
-  cancelRetry(eventId: string): void {
-    const timerId = this.timers.get(eventId);
+  cancelRetry(msgId: string): void {
+    const timerId = this.timers.get(msgId);
     if (timerId !== undefined) {
       crossClearTimeout!(timerId);
-      this.timers.delete(eventId);
+      this.timers.delete(msgId);
     }
-    this.retryQueue.delete(eventId);
+    this.retryQueue.delete(msgId);
   }
 
   /**
@@ -100,9 +100,9 @@ export class RetryStrategy {
    */
   checkPendingRetries(): void {
     const now = Date.now();
-    for (const [eventId, state] of this.retryQueue) {
+    for (const [msgId, state] of this.retryQueue) {
       if (state.nextRetryTime <= now) {
-        this.onRetryReadyCallback?.(eventId);
+        this.onRetryReadyCallback?.(msgId);
       }
     }
   }
@@ -137,14 +137,14 @@ export class RetryStrategy {
   /**
    * 安排定时器，到期时触发回调
    */
-  private scheduleTimer(eventId: string, time: number): void {
+  private scheduleTimer(msgId: string, time: number): void {
     const delay = Math.max(0, time - Date.now());
     const timerId = crossSetTimeout!(() => {
-      this.timers.delete(eventId);
+      this.timers.delete(msgId);
       // 触发回调通知重试到期
-      this.onRetryReadyCallback?.(eventId);
+      this.onRetryReadyCallback?.(msgId);
     }, delay);
-    this.timers.set(eventId, timerId);
+    this.timers.set(msgId, timerId);
   }
 
   /**

@@ -30,17 +30,19 @@ export class PlatformAdapterFactory {
    * 创建网络适配器
    */
   static createNetworkAdapter(platform: Platform, config: SDKConfig): INetworkAdapter | undefined {
+    const serverUrl = config.serverUrl || '';
+
     switch (platform) {
       case 'miniapp-weixin':
-        return new WeixinNetworkAdapter(config.serverUrl);
+        return new WeixinNetworkAdapter(serverUrl);
       case 'miniapp-alipay':
-        return new AlipayNetworkAdapter(config.serverUrl);
+        return new AlipayNetworkAdapter(serverUrl);
       case 'miniapp-baidu':
-        return new BaiduNetworkAdapter(config.serverUrl);
+        return new BaiduNetworkAdapter(serverUrl);
       case 'miniapp-toutiao':
-        return new ToutiaoNetworkAdapter(config.serverUrl);
+        return new ToutiaoNetworkAdapter(serverUrl);
       case 'nodejs':
-        return new NodeNetworkAdapter(config.serverUrl);
+        return new NodeNetworkAdapter(serverUrl);
       case 'web':
         return new WebNetworkAdapter(config);
       default:
@@ -80,7 +82,7 @@ export class PlatformAdapterFactory {
    */
   static createConfigProvider(
     platform: Platform,
-    _storageAdapter?: IStorageAdapter, // eslint-disable-line @typescript-eslint/no-unused-vars
+    storageAdapter?: IStorageAdapter,
   ): ConfigProvider {
     switch (platform) {
       case 'miniapp-weixin':
@@ -94,9 +96,9 @@ export class PlatformAdapterFactory {
       case 'nodejs':
         return new NodeConfigProvider();
       case 'web':
-        return new WebConfigProvider();
+        return new WebConfigProvider(storageAdapter);
       default:
-        return new WebConfigProvider();
+        return new WebConfigProvider(storageAdapter);
     }
   }
 

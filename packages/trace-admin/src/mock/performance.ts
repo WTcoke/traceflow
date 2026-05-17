@@ -38,7 +38,7 @@ export const performanceMetrics: MetricData[] = [
     trend: -0.02,
     trendDirection: 'down',
     compareText: '较昨日',
-    sparkline: [0.12, 0.11, 0.10, 0.09, 0.08, 0.08, 0.08],
+    sparkline: [0.12, 0.11, 0.1, 0.09, 0.08, 0.08, 0.08],
     status: 'success',
   },
   {

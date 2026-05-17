@@ -1,0 +1,61 @@
+{
+  // 必填：应用ID，用于识别项目
+  "appId": "app_abc123",
+
+  // 必填：事件列表，1-100条
+  "events": [
+    {
+      // 必填：消息ID，建议 SDK 生成唯一ID，用于去重
+      "msgId": "msg_123456",
+
+      // 必填：设备ID
+      "deviceId": "device_abc123",
+
+      // 可选：用户ID，未登录用户可以不传
+      "userId": "user_789",
+
+      // 必填：事件时间戳，毫秒
+      "eventTime": 1714147200000,
+
+      // 必填：事件类型，常用值 behavior / performance / error
+      "eventType": "behavior",
+
+      // 必填：平台，常用值 web / ios / android / miniapp / pc / h5
+      "platform": "web",
+
+      // 可选：浏览器 UA，后端可用它解析 os/browser
+      "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36",
+
+      // 可选：IP 地址
+      "ip": "192.168.1.1",
+
+      // 可选：操作系统
+      "os": "Windows 10",
+
+      // 可选：浏览器
+      "browser": "Chrome 120",
+
+      // 可选：国家
+      "country": "中国",
+
+      // 可选：省份
+      "province": "广东省",
+
+      // 可选：城市
+      "city": "深圳市",
+
+      // 可选：业务数据，具体埋点内容都放这里
+      "data": {
+        "pageUrl": "https://example.com/home",
+        "pageTitle": "首页",
+        "eventName": "button_click",
+        "element": "submit_button",
+        "duration": 1200,
+        "extra": {
+          "source": "sdk",
+          "version": "1.0.0"
+        }
+      }
+    }
+  ]
+}
