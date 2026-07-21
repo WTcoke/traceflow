@@ -1,15 +1,19 @@
+/**
+ * 统一响应格式
+ * 与 ResponseInterceptor 和 HttpExceptionFilter 保持一致
+ */
 export interface ApiResponse<T = unknown> {
   code: number;
   message: string;
   data: T;
-  timestamp: number;
+  requestId: string;
 }
 
-export interface PaginatedResponse<T> extends ApiResponse<T> {
-  pagination?: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
+/**
+ * 分页数据结构
+ */
+export interface PaginatedResponse<T> {
+  total: number;
+  pages: number;
+  list: T[];
 }

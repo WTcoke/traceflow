@@ -48,44 +48,11 @@ pnpm build
 pnpm start:prod
 ```
 
-## API 接口
-
-### POST /api/track - 单条事件上报
-
-```json
-{
-  "eventId": "uuid-xxx",
-  "eventType": "track",
-  "timestamp": 1713001234567,
-  "anonymousId": "anon-123",
-  "sessionId": "sess-456",
-  "deviceInfo": {
-    "deviceId": "device-001",
-    "platform": "web"
-  }
-}
-```
-
-### POST /api/track/batch - 批量事件上报
-
-```json
-{
-  "events": [{ ... }, { ... }]
-}
-```
-
-### GET /api/track/:id - 查询事件
-
-### GET /api/track/analytics/simple-stats - 简单统计
-
-查询参数：`startTime`, `endTime`, `userId`, `eventType`
-
 ## 项目结构
 
 ```
 traceflow-server/
 ├── .env                      # 环境变量（本地）
-├── .env.production           # 环境变量（生产）
 ├── .eslintrc.js              # ESLint 配置
 ├── .prettierrc               # 代码格式化
 ├── nest-cli.json             # Nest CLI 配置
@@ -105,6 +72,7 @@ traceflow-server/
 │   │   ├── decorators/        # 自定义装饰器
 │   │   ├── filters/           # 异常过滤器
 │   │   ├── guards/            # 鉴权守卫（JWT/项目密钥）
+│   │   ├── pipes/             # 校验管道
 │   │   ├── interceptors/      # 响应拦截/日志拦截
 │   │   ├── middleware/        # 跨域/限流中间件
 │   │   └── utils/            # 工具：UA解析、IP解析、加密等

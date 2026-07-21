@@ -1,0 +1,36 @@
+CREATE TABLE IF NOT EXISTS `buried_point_data` (
+  `id` BIGINT UNSIGNED NOT NULL COMMENT '主键ID（雪花算法）',
+  `msg_id` VARCHAR(64) NOT NULL COMMENT 'SDK上报唯一ID，去重用',
+  `project_id` BIGINT UNSIGNED NOT NULL,
+  `device_id` VARCHAR(128) NOT NULL,
+  `user_id` VARCHAR(64) NULL,
+  `event_time` BIGINT UNSIGNED NOT NULL COMMENT '事件时间戳（毫秒）',
+  `event_type` ENUM('behavior','performance','error') NOT NULL COMMENT '事件类型',
+  `platform` VARCHAR(20) NOT NULL COMMENT '平台：web/mini-app/app',
+  `user_agent` TEXT NULL,
+  `ip` VARCHAR(45) NULL,
+  `os` VARCHAR(50) NULL,
+  `browser` VARCHAR(50) NULL,
+  `country` VARCHAR(50) NULL,
+  `province` VARCHAR(50) NULL,
+  `city` VARCHAR(50) NULL,
+  `data` JSON NOT NULL COMMENT '埋点原始数据',
+  `is_abnormal` TINYINT NOT NULL DEFAULT 0 COMMENT '是否异常数据',
+  `v_error_type` VARCHAR(100) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(`data`,'$.errorType'))) VIRTUAL,
+  `v_page_url` VARCHAR(500) GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(`data`,'$.pageUrl'))) VIRTUAL,
+  `create_time` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (`id`,`event_time`),
+  UNIQUE INDEX `uk_msg_id` (`msg_id`),  
+  INDEX `idx_project_event_time` (`project_id`,`event_time`),
+  INDEX `idx_device_time` (`device_id`,`event_time`),
+  INDEX `idx_event_type_time` (`event_type`,`event_time`),
+  INDEX `idx_v_error_type` (`v_error_type`),
+  INDEX `idx_v_page_url` (`v_page_url`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+PARTITION BY RANGE (`event_time`) (
+  PARTITION p202601 VALUES LESS THAN (1735689600000),
+  PARTITION p202602 VALUES LESS THAN (1738368000000),
+  PARTITION p202603 VALUES LESS THAN (1740787200000),
+  PARTITION p202604 VALUES LESS THAN (1743465600000),
+  PARTITION p_max VALUES LESS THAN MAXVALUE
+);
